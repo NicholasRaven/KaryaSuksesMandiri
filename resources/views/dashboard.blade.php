@@ -1,17 +1,44 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+     <div class="flex h-screen">
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    {{ __("You're logged in!") }}
-                </div>
-            </div>
-        </div>
+    <!-- Sidebar -->
+    <div :class="open ? 'translate-x-0' : '-translate-x-full'"
+         class="fixed z-30 inset-y-0 left-0 w-64 bg-gray-200 text-black transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0">
+      <div class="p-4 text-2xl font-bold">KSM</div>
+      <nav class="mt-4 space-y-4 pl-4 text-lg">
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>🏠</span><span>Dashboard</span>
+        </a>
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>👤</span><span>User</span>
+        </a>
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>👥</span><span>Customer</span>
+        </a>
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>🚗</span><span>Supplier</span>
+        </a>
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>🧾</span><span>Pesanan</span>
+        </a>
+        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>📦</span><span>Penjualan & Pembelian</span>
+        </a>
+      </nav>
     </div>
+
+    <!-- Overlay -->
+    <div x-show="open" @click="open = false"
+         class="fixed inset-0 bg-black opacity-50 z-20 md:hidden"></div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col w-full ml-0 md:ml-64">
+      <!-- Page Content -->
+      <main class="flex-1 p-4">
+        <!-- Your content here -->
+        <p>Welcome to your dashboard.</p>
+      </main>
+    </div>
+  </div>
+
 </x-app-layout>
