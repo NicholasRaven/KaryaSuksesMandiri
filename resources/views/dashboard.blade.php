@@ -7,22 +7,22 @@
       <div class="p-4 text-2xl font-bold">KSM</div>
       <nav class="mt-4 space-y-4 pl-4 text-lg">
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>🏠</span><span>Dashboard</span>
+          <span>Dashboard</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>👤</span><span>User</span>
+          <span>User</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>👥</span><span>Customer</span>
+          <span>Customer</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>🚗</span><span>Supplier</span>
+          <span>Supplier</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>🧾</span><span>Pesanan</span>
+          <span>Pesanan</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>📦</span><span>Penjualan & Pembelian</span>
+          <span>Penjualan & Pembelian</span>
         </a>
       </nav>
     </div>
