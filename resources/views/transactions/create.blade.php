@@ -35,9 +35,9 @@
                         </div>
 
                         <div class="mb-6">
-                            <label for="delivery_address" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Alamat Pengiriman:</label>
-                            <textarea name="delivery_address" id="delivery_address" rows="3" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('delivery_address') border-red-500 @enderror">{{ old('delivery_address') }}</textarea>
-                            @error('delivery_address')
+                            <label for="shipping_address" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Alamat Pengiriman:</label>
+                            <textarea name="shipping_address" id="shipping_address" rows="3" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('shipping_address') border-red-500 @enderror">{{ old('shipping_address') }}</textarea>
+                            @error('shipping_address')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
                         </div>

@@ -67,7 +67,7 @@
                                             <td class="py-4 px-6">{{ $detail->item_name }}</td>
                                             <td class="py-4 px-6">{{ $detail->quantity }}</td>
                                             <td class="py-4 px-6">{{ $detail->specification ?? '-' }}</td>
-                                            <td class="py-4 px-6">Rp {{ number_format($detail->final_price_per_unit ?? 0, 0, ',', '.') }}</td>
+                                            <td class="py-4 px-6">Rp {{ number_format($detail->selectedSupplierPrice->price ?? 0, 0, ',', '.') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -138,9 +138,9 @@
                             <div class="md:col-span-2">
                                 <p class="text-lg font-bold text-gray-900 dark:text-gray-100"><strong>TOTAL INVOICE:</strong> Rp {{ number_format($transaction->invoice->total_amount, 0, ',', '.') }}</p>
                             </div>
-                            @if ($transaction->invoice->po_file_path)
+                            @if ($transaction->invoice->po_file)
                             <div class="md:col-span-2">
-                                <p class="text-gray-600 dark:text-gray-400"><strong>File PO:</strong> <a href="{{ Storage::url($transaction->invoice->po_file_path) }}" target="_blank" class="text-blue-500 hover:underline">Lihat File PO</a></p>
+                                <p class="text-gray-600 dark:text-gray-400"><strong>File PO:</strong> <a href="{{ Storage::url($transaction->invoice->po_file) }}" target="_blank" class="text-blue-500 hover:underline">Lihat File PO</a></p>
                             </div>
                             @endif
                         </div>
@@ -153,17 +153,6 @@
                         <a href="{{ route('transactions.index') }}" class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800">
                             Kembali ke Daftar Transaksi
                         </a>
-                        {{-- Optional: Edit and Delete buttons for full CRUD on details --}}
-                        {{-- <a href="{{ route('transactions.edit', $transaction->id) }}" class="inline-flex items-center px-4 py-2 bg-yellow-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-600 focus:bg-yellow-600 active:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            Edit Transaksi
-                        </a>
-                        <form action="{{ route('transactions.destroy', $transaction->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi ini? Ini akan menghapus semua detail terkait.');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 focus:bg-red-700 active:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                Hapus Transaksi
-                            </button>
-                        </form> --}}
                     </div>
                 </div>
             </div>

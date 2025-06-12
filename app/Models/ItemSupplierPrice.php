@@ -25,4 +25,6 @@ class ItemSupplierPrice extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+
+    
 }

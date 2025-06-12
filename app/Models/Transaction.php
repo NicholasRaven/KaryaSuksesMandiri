@@ -31,4 +31,5 @@ class Transaction extends Model
     {
         return $this->hasOne(Invoice::class);
     }
+
 }
