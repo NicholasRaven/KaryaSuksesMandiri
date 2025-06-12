@@ -87,7 +87,7 @@
                                                         Input Harga Supplier
                                                     </a>
                                                 @elseif ($transaction->process_status == 'PO Diterima' && $transaction->details->every(fn($detail) => $detail->final_price_per_unit))
-                                                    {{-- Jika harga supplier sudah dipilih, lanjut ke Buat PH --}}
+
                                                     <a href="{{ route('transactions.generate_ph', $transaction->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded">
                                                         Buat PH
                                                     </a>
@@ -96,7 +96,8 @@
                                                     <a href="{{ route('transactions.confirm_po_received', $transaction->id) }}" class="inline-flex items-center px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold rounded">
                                                         Konfirmasi PO
                                                     </a>
-                                                @elseif ($transaction->process_status == 'PO Diterima' && $transaction->invoice && $transaction->invoice->po_file_path && $transaction->payment_status == 'Belum Ada Invoice')
+
+                                                @elseif ($transaction->process_status == 'PO Diterima' && $transaction->payment_status == 'Belum Ada Invoice')
                                                     {{-- Jika PO sudah dikonfirmasi (file ada), dan status pembayaran belum ada invoice --}}
                                                     <a href="{{ route('transactions.create_invoice', $transaction->id) }}" class="inline-flex items-center px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded">
                                                         Buat Invoice

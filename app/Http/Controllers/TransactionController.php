@@ -58,86 +58,87 @@ class TransactionController extends Controller
      * Setelah berhasil, mengarahkan ke langkah selanjutnya: input harga supplier.
      * [cite: image_30e515.png, image_6bfd54.png]
      */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'order_date' => 'required|date',
-            'shipping_address' => 'nullable|string',
-            'orderer_name' => 'nullable|string|max:255',
-            'orderer_email' => 'nullable|email|max:255',
-            'orderer_phone' => 'nullable|string|max:20',
-            'items' => 'required|array|min:1', // Pastikan ada minimal 1 barang
-            'items.*.item_id' => 'nullable|exists:items,id', // item_id bisa null jika input manual
-            'items.*.item_name' => 'required_without:items.*.item_id|string|max:255', // Nama barang required jika item_id null
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.specification_notes' => 'nullable|string',
+public function store(Request $request)
+{
+    $validatedData = $request->validate([
+        'customer_id' => 'required|exists:customers,id',
+        'order_date' => 'required|date',
+        'shipping_address' => 'nullable|string',
+        'orderer_name' => 'nullable|string|max:255',
+        'orderer_email' => 'nullable|email|max:255',
+        'orderer_phone' => 'nullable|string|max:20',
+        'items' => 'required|array|min:1',
+        'items.*.item_id' => 'nullable|exists:items,id',
+        'items.*.item_name' => 'required_without:items.*.item_id|string|max:255',
+        'items.*.quantity' => 'required|integer|min:1',
+        'items.*.specification_notes' => 'nullable|string',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // Generate transaction number
+        $latestTransactionId = Transaction::max('id') ?? 0;
+        $transactionNumber = 'TR-' . date('Ymd') . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
+
+        // Create Transaction
+        $transaction = Transaction::create([
+            'transaction_number' => $transactionNumber,
+            'customer_id' => $validatedData['customer_id'],
+            'order_date' => $validatedData['order_date'],
+            'shipping_address' => $validatedData['shipping_address'],
+            'process_status' => 'PO Diterima',
+            'payment_status' => 'Belum Ada Invoice',
+            'total_price' => 0,
         ]);
 
-        DB::beginTransaction();
-        try {
-            // Generate nomor transaksi (contoh: TR-20240708-0001)
-            $latestTransaction = Transaction::orderByDesc('id')->first();
-            $nextId = ($latestTransaction) ? $latestTransaction->id + 1 : 1;
-            $transactionNumber = 'TR-' . date('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+        // Insert Transaction Details
+        foreach ($validatedData['items'] as $itemData) {
+            $itemName = $itemData['item_name'];
 
-            $transaction = Transaction::create([
-                'transaction_number' => $transactionNumber,
-                'customer_id' => $request->customer_id,
-                'order_date' => $request->order_date,
-                'shipping_address' => $request->shipping_address,
-                // `ph_notes` dan `total_price` akan diperbarui di langkah selanjutnya atau di-set default kosong di sini
-                // Jika ingin `ph_notes` di-input di sini, tambahkan ke validasi dan field
-                'process_status' => 'PO Diterima', // Status awal [cite: image_30e534.png, image_6c0191.png]
-                'payment_status' => 'Belum Ada Invoice', // Status awal [cite: image_30e534.png, image_6c0191.png]
-                'total_price' => 0, // Harga awal 0, akan diupdate saat invoice dibuat
-                // `po_file` tidak ada di tabel `transactions` karena dipindahkan ke `invoices`
-            ]);
-
-            foreach ($request->items as $itemData) {
-                // Gunakan item_id jika dipilih, jika tidak, gunakan item_name yang diinput manual
-                $itemId = $itemData['item_id'] ?? null;
-                $itemName = $itemData['item_name']; // Ini akan diambil dari select option text atau input manual
-
-                // Jika item_id dipilih, pastikan item_name sesuai dengan master item
-                if ($itemId) {
-                    $masterItem = Item::find($itemId);
-                    if ($masterItem) {
-                        $itemName = $masterItem->name;
-                    }
+            if (!empty($itemData['item_id'])) {
+                $masterItem = Item::find($itemData['item_id']);
+                if ($masterItem) {
+                    $itemName = $masterItem->name;
                 }
-
-                TransactionDetail::create([
-                    'transaction_id' => $transaction->id,
-                    'item_id' => $itemId,
-                    'item_name' => $itemName, // Simpan juga nama barangnya
-                    'quantity' => $itemData['quantity'],
-                    'specification_notes' => $itemData['specification_notes'],
-                ]);
             }
 
-            DB::commit();
-            return redirect()->route('transactions.input_supplier_prices', $transaction->id)
-                             ->with('success', 'Transaksi awal berhasil dibuat. Lanjutkan untuk input harga supplier.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()->with('error', 'Gagal membuat transaksi: ' . $e->getMessage());
+            TransactionDetail::create([
+                'transaction_id' => $transaction->id,
+                'item_id' => $itemData['item_id'] ?? null,
+                'item_name' => $itemName,
+                'quantity' => $itemData['quantity'],
+                'specification_notes' => $itemData['specification_notes'] ?? null,
+            ]);
         }
+
+        DB::commit();
+        return redirect()->route('transactions.input_supplier_prices', $transaction->id)
+                         ->with('success', 'Transaksi awal berhasil dibuat. Lanjutkan untuk input harga supplier.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withInput()->with('error', 'Gagal membuat transaksi: ' . $e->getMessage());
     }
+}
+
 
     /**
      * 3. Tampilan Form Input Harga Supplier
      * Menampilkan formulir untuk setiap barang pesanan agar bisa diinput harga dari berbagai supplier.
      * [cite: image_30e26c.png, image_6bfaaa.png]
      */
-    public function inputSupplierPrices(Transaction $transaction)
-    {
-        $transaction->load(['details.item', 'details.supplierPrices.supplier']); // Load detail transaksi, item, dan harga supplier yang sudah ada
-        $suppliers = Supplier::orderBy('name')->get(); // Ambil semua supplier untuk dropdown
+public function inputSupplierPrices(Transaction $transaction)
+{
+    $transaction->load(['details.item', 'details.supplierPrices.supplier']);
+    $suppliers = Supplier::orderBy('name')->get();
 
-        return view('transactions.input_supplier_prices', compact('transaction', 'suppliers'));
-    }
+    // Find item names that have a matching supplier
+    $itemNamesWithSuppliers = Supplier::pluck('name')->toArray();
+
+    return view('transactions.input_supplier_prices', compact('transaction', 'suppliers', 'itemNamesWithSuppliers'));
+}
+
+
 
     /**
      * 3. Simpan Harga Supplier
@@ -145,76 +146,70 @@ class TransactionController extends Controller
      * Setelah berhasil, mengarahkan ke langkah selanjutnya: generate PH.
      * [cite: image_30e26c.png, image_6bfaaa.png]
      */
-    public function storeSupplierPrices(Request $request, Transaction $transaction)
-    {
-        $request->validate([
-            'transaction_details' => 'required|array',
-            'transaction_details.*.id' => 'required|exists:transaction_details,id',
-            'transaction_details.*.selected_price_id' => 'nullable|integer', // ID dari ItemSupplierPrice yang dipilih
-            'transaction_details.*.prices' => 'array', // Array untuk harga-harga supplier yang diinput
-            'transaction_details.*.prices.*.supplier_id' => 'required|exists:suppliers,id',
-            'transaction_details.*.prices.*.price' => 'required|numeric|min:0',
-            'transaction_details.*.prices.*.notes' => 'nullable|string|max:255',
-        ]);
+public function storeSupplierPrices(Request $request, Transaction $transaction)
+{
+    $request->validate([
+        'item_prices' => 'required|array',
+        'item_prices.*' => 'required|array', // Each transaction_detail_id => array of prices
+        'selected_prices' => 'nullable|array',
+        'selected_prices.*' => 'nullable|integer|exists:item_supplier_prices,id',
+    ]);
 
-        DB::beginTransaction();
-        try {
-            foreach ($request->transaction_details as $detailData) {
-                $transactionDetail = TransactionDetail::findOrFail($detailData['id']);
+    DB::beginTransaction();
+    try {
+        foreach ($request->item_prices as $transactionDetailId => $supplierPrices) {
+            $transactionDetail = TransactionDetail::findOrFail($transactionDetailId);
 
-                // Hapus semua pilihan sebelumnya untuk detail ini
-                ItemSupplierPrice::where('transaction_detail_id', $transactionDetail->id)
-                                 ->update(['is_selected' => false]);
+            // Reset selection for this detail
+            ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)
+                             ->update(['is_selected' => false]);
 
-                $selectedPricePerUnit = null; // Untuk menyimpan harga final yang dipilih
+            $selectedPricePerUnit = null;
 
-                // Simpan atau update harga supplier yang baru diinput/diedit
-                if (isset($detailData['prices']) && is_array($detailData['prices'])) {
-                    foreach ($detailData['prices'] as $priceInput) {
-                        $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
-                            [
-                                'transaction_detail_id' => $transactionDetail->id,
-                                'supplier_id' => $priceInput['supplier_id'],
-                            ],
-                            [
-                                'price' => $priceInput['price'],
-                                'notes' => $priceInput['notes'],
-                            ]
-                        );
+            foreach ($supplierPrices as $priceInput) {
+                $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
+                    [
+                        'transaction_detail_id' => $transactionDetailId,
+                        'supplier_id' => $priceInput['supplier_id'],
+                    ],
+                    [
+                        'price' => $priceInput['price'],
+                        'notes' => $priceInput['notes'] ?? null,
+                    ]
+                );
 
-                        // Tandai harga yang dipilih dan ambil harganya
-                        if (isset($detailData['selected_price_id']) && $itemSupplierPrice->id == $detailData['selected_price_id']) {
-                            $itemSupplierPrice->update(['is_selected' => true]);
-                            $selectedPricePerUnit = $itemSupplierPrice->price;
-                        }
-                    }
+                // Check if this price is the selected one
+                if (isset($request->selected_prices[$transactionDetailId]) &&
+                    $itemSupplierPrice->id == $request->selected_prices[$transactionDetailId]) {
+                    $itemSupplierPrice->update(['is_selected' => true]);
+                    $selectedPricePerUnit = $itemSupplierPrice->price;
                 }
-
-                // Jika harga yang dipilih bukan dari input baru (misal: harga lama yang dipilih)
-                // Atau jika `selected_price_id` diberikan dan tidak ada di `prices` yang baru disimpan
-                if (isset($detailData['selected_price_id']) && $selectedPricePerUnit === null) {
-                    $existingSelectedPrice = ItemSupplierPrice::find($detailData['selected_price_id']);
-                    if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetail->id) {
-                        $existingSelectedPrice->update(['is_selected' => true]);
-                        $selectedPricePerUnit = $existingSelectedPrice->price;
-                    }
-                }
-
-                // Update final_price_per_unit di TransactionDetail
-                $transactionDetail->update([
-                    'final_price_per_unit' => $selectedPricePerUnit,
-                ]);
             }
 
-            DB::commit();
-            return redirect()->route('transactions.generate_ph', $transaction->id)
-                             ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
+            // Handle selection of old prices
+            if (isset($request->selected_prices[$transactionDetailId]) && $selectedPricePerUnit === null) {
+                $existingSelectedPrice = ItemSupplierPrice::find($request->selected_prices[$transactionDetailId]);
+                if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetailId) {
+                    $existingSelectedPrice->update(['is_selected' => true]);
+                    $selectedPricePerUnit = $existingSelectedPrice->price;
+                }
+            }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withInput()->with('error', 'Gagal menyimpan harga supplier: ' . $e->getMessage());
+            // Update the final selected price
+            $transactionDetail->update([
+                'final_price_per_unit' => $selectedPricePerUnit,
+            ]);
         }
+
+        DB::commit();
+        return redirect()->route('transactions.generate_ph', $transaction->id)
+                         ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withInput()->with('error', 'Gagal menyimpan harga supplier: ' . $e->getMessage());
     }
+}
+
 
 
     /**
@@ -224,18 +219,17 @@ class TransactionController extends Controller
      */
     public function generatePH(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier']); // Eager load data penting
+        $transaction->load(['customer', 'details.item','details.selectedSupplierPrice.supplier']); // Remove selectedSupplierPrice
 
         // Hitung subtotal untuk PH
         $phSubtotal = 0;
         foreach ($transaction->details as $detail) {
-            if ($detail->selectedSupplierPrice) {
-                $phSubtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
-            }
+            $phSubtotal += $detail->final_price_per_unit * $detail->quantity;
         }
 
         return view('transactions.generate_ph', compact('transaction', 'phSubtotal'));
     }
+
 
     /**
      * 4. Aksi Konfirmasi PH Dikirim
@@ -259,7 +253,7 @@ class TransactionController extends Controller
     /**
      * 5. Tampilan Konfirmasi PO Diterima
      * Menampilkan form untuk mengunggah file PO yang diterima dari pelanggan.
-     * 
+     *
      */
     public function confirmPOReceived(Transaction $transaction)
     {
@@ -312,7 +306,7 @@ class TransactionController extends Controller
 
 
             DB::commit();
-            return redirect()->route('transactions.generate_invoice', $transaction->id)
+            return redirect()->route('transactions.create_invoice', $transaction->id)
                              ->with('success', 'Konfirmasi PO diterima dan file berhasil diunggah. Lanjutkan untuk membuat Invoice.');
 
         } catch (\Exception $e) {
@@ -327,7 +321,7 @@ class TransactionController extends Controller
      * Menampilkan form untuk membuat atau mengedit invoice, dengan perhitungan subtotal, pajak, dan total.
      * [cite: image_30e20e.png, image_6bfa31.png]
      */
-    public function generateInvoice(Transaction $transaction)
+    public function createInvoice(Transaction $transaction)
     {
         $transaction->load(['details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
 
@@ -348,7 +342,7 @@ class TransactionController extends Controller
      * Menyimpan data invoice ke database dan memperbarui status transaksi.
      * [cite: image_30e20e.png, image_6bfa31.png]
      */
-    public function storeInvoice(Request $request, Transaction $transaction)
+        public function storeInvoice(Request $request, Transaction $transaction)
     {
         $request->validate([
             'invoice_number' => 'required|string|unique:invoices,invoice_number,' . ($transaction->invoice ? $transaction->invoice->id : 'NULL') . ',id,transaction_id,' . $transaction->id,

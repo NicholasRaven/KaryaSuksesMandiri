@@ -12,6 +12,7 @@
                     <h3 class="text-center text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">INVOICE</h3>
 
                     <form action="{{ route('transactions.store_invoice', $transaction->id) }}" method="POST">
+                        <input type="hidden" name="subtotal_calculated" id="subtotal_calculated" value="{{ $subtotal }}">
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
@@ -29,15 +30,11 @@
                                 @enderror
                             </div>
                             <div>
-                                <label for="due_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Jatuh Tempo:</label>
+                                <label for="due_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tanggal Jatuh Tempo:</label>
                                 <input type="date" name="due_date" id="due_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('due_date') border-red-500 @enderror" value="{{ old('due_date', $invoice ? $invoice->due_date : '') }}">
                                 @error('due_date')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
-                            </div>
-                            <div>
-                                <label class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tanggal Jatuh Tempo:</label>
-                                <input type="text" id="display_due_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm block mt-1 w-full" readonly>
                             </div>
                         </div>
 
@@ -56,8 +53,8 @@
                                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                             <td class="py-4 px-6">{{ $detail->item_name }}</td>
                                             <td class="py-4 px-6">{{ $detail->quantity }} pcs</td>
-                                            <td class="py-4 px-6">Rp {{ number_format($detail->final_price_per_unit ?? 0, 0, ',', '.') }}</td>
-                                            <td class="py-4 px-6">Rp {{ number_format(($detail->final_price_per_unit ?? 0) * $detail->quantity, 0, ',', '.') }}</td>
+                                            <td class="py-4 px-6">Rp {{ number_format($detail->selectedSupplierPrice->price ?? 0, 0, ',', '.') }}</td>
+                                            <td class="py-4 px-6">Rp {{ number_format(($detail->selectedSupplierPrice->price ?? 0) * $detail->quantity, 0, ',', '.') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -122,6 +119,7 @@
             let totalAmount = subtotal + taxAmount + otherCosts;
 
             document.getElementById('total_amount_display').value = formatRupiah(totalAmount);
+            document.getElementById('subtotal_calculated').value = subtotal;
         }
 
         document.addEventListener('DOMContentLoaded', function() {

@@ -14,4 +14,9 @@ class Item extends Model
     {
         return $this->hasMany(TransactionDetail::class);
     }
+
+    public function suppliers()
+{
+    return $this->belongsToMany(Supplier::class);
+}
 }

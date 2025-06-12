@@ -31,4 +31,9 @@ class TransactionDetail extends Model
     {
         return $this->hasMany(ItemSupplierPrice::class);
     }
+
+        public function selectedSupplierPrice()
+    {
+        return $this->hasOne(ItemSupplierPrice::class)->where('is_selected', true);
+    }
 }

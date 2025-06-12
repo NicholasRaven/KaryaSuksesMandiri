@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('shipping_address')->nullable();
             $table->string('process_status')->default('PO Diterima');
             $table->string('payment_status')->default('Belum Ada Invoice');
-            $table->text('ph_notes')->nullable()->after('payment_status');
-            $table->string('po_file')->nullable()->after('ph_notes');
+            $table->text('ph_notes')->nullable();
+            $table->string('po_file')->nullable();
             $table->timestamps();
         });
     }
@@ -31,7 +31,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('transactions');
-            $table->dropColumn('po_file');
-            $table->dropColumn('ph_notes');
     }
 };
