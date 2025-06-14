@@ -38,8 +38,17 @@ Route::post('transactions/{transaction}/confirm-ph-sent', [TransactionController
 Route::get('transactions/{transaction}/confirm-po', [TransactionController::class, 'confirmPOReceived'])->name('transactions.confirm_po_received'); // Step 4 GET
 Route::post('transactions/{transaction}/store-po', [TransactionController::class, 'storePOReceived'])->name('transactions.store_po_received'); // Step 4 POST
 
+<<<<<<< Updated upstream
 Route::get('transactions/{transaction}/create-invoice', [TransactionController::class, 'createInvoice'])->name('transactions.create_invoice'); // Step 5 GET
 Route::post('transactions/{transaction}/store-invoice', [TransactionController::class, 'storeInvoice'])->name('transactions.store_invoice'); // Step 5 POST
+=======
+    Route::get('transactions/{transaction}/create-invoice', [TransactionController::class, 'createInvoice'])->name('transactions.create_invoice'); // Step 5 GET
+    Route::post('transactions/{transaction}/store-invoice', [TransactionController::class, 'storeInvoice'])->name('transactions.store_invoice'); // Step 5 POST
+
+    // Rute untuk Download PDF
+    Route::get('/{transaction}/download-ph-pdf', [TransactionController::class, 'downloadPHPdf'])->name('download_ph_pdf');
+    Route::get('/{transaction}/download-invoice-pdf', [TransactionController::class, 'downloadInvoicePdf'])->name('download_invoice_pdf');
+>>>>>>> Stashed changes
 });
 
 require __DIR__.'/auth.php';
