@@ -61,7 +61,7 @@
             font-weight: bold;
         }
         .summary-table {
-            width: 40%; /* Adjust as needed */
+            width: 40%;
             float: right;
             border-collapse: collapse;
             margin-top: 20px;
@@ -106,13 +106,13 @@
     <div class="header">
         <h1>INVOICE</h1>
         <p>CV. KARYA SUKSES MANDIRI</p>
-        <p>Jl. Contoh Alamat No. 123, Kota Contoh, Kode Pos 12345</p>
-        <p>Telepon: (021) 12345678 | Email: info@cvksm.com</p>
+        <p>Jl. Kolonel Andrians Lintas Barat Sukabangun II, Palembang</p>
+        <p>Telepon: (0711) 5611815  | Email: ksm@yahoo.com</p>
     </div>
 
     <table class="invoice-details">
         <tr>
-            <td class="label">Invoice No:</td>
+            <td class="label">Nomor Invoice:</td>
             <td>{{ $invoice->invoice_number }}</td>
             <td class="label">Tanggal Invoice:</td>
             <td>{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') }}</td>
@@ -124,7 +124,7 @@
             <td>{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '-' }}</td>
         </tr>
         <tr>
-            <td class="label">No. Transaksi:</td>
+            <td class="label">Nomor Transaksi:</td>
             <td>{{ $transaction->transaction_number }}</td>
             <td class="label">Status Pembayaran:</td>
             <td>{{ $transaction->payment_status }}</td>
@@ -192,13 +192,13 @@
         @else
             <p>File PO: Tidak terlampir</p>
         @endif
-        <p>Metode Pembayaran: Transfer Bank (contoh)</p>
+        <p>Metode Pembayaran: Transfer Bank</p>
         <p>Rekening: BCA 1234567890 a.n. CV. Karya Sukses Mandiri</p>
     </div>
 
     <div class="signature">
         <p>Hormat Kami,</p>
-        <p style="width: 180px;">(Nama Petugas Keuangan)</p>
+        <p style="width: 180px;">(Priyo DA)</p>
     </div>
 </body>
 </html>

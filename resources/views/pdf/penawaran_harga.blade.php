@@ -92,13 +92,13 @@
     <div class="header">
         <h1>PENAWARAN HARGA</h1>
         <p>CV. KARYA SUKSES MANDIRI</p>
-        <p>Jl. Contoh Alamat No. 123, Kota Contoh, Kode Pos 12345</p>
-        <p>Telepon: (021) 12345678 | Email: info@cvksm.com</p>
+        <p>Jl. Kolonel Andrians Lintas Barat Sukabangun II, Palembang</p>
+        <p>Telepon: (0711) 5611815 | Email: ksm@yahoo.com</p>
     </div>
 
     <table class="info-table">
         <tr>
-            <td class="label">No. Transaksi:</td>
+            <td class="label">Nomor Transaksi:</td>
             <td>{{ $transaction->transaction_number }}</td>
             <td class="label">Nama Pelanggan:</td>
             <td>{{ $transaction->customer->name ?? '-' }}</td>
@@ -118,7 +118,7 @@
         <tr>
             <td class="label"></td>
             <td></td>
-            <td class="label">Telp Pemesan:</td>
+            <td class="label">Telepon Pemesan:</td>
             <td>{{ $transaction->customer->phone ?? '-' }}</td>
         </tr>
     </table>
@@ -165,7 +165,7 @@
 
     <div class="signature">
         <p>Hormat Kami,</p>
-        <p style="width: 200px;">(Nama Petugas)</p>
+        <p style="width: 200px;">Priyo DA</p>
     </div>
 </body>
 </html>
