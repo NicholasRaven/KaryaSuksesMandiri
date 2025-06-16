@@ -4,15 +4,6 @@
             {{ __('Konfirmasi PO Diterima') }}
         </h2>
     </x-slot>
-@if ($errors->any())
-    <div class="mb-4 text-red-500">
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
 
     <div class="py-12">
         <div class="max-w-md mx-auto sm:px-6 lg:px-8">

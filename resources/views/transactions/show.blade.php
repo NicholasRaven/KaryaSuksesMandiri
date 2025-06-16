@@ -87,7 +87,7 @@
                                 </tbody>
                             </table>
                         </div>
-
+                </div>
                 {{-- Panel 3: Konfirmasi PO --}}
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Konfirmasi PO</h3>
@@ -166,7 +166,7 @@
                         </div>
                     @endif
                 </div>
-
+                @endif
             </div>
 
             {{-- Kembali ke Dashboard --}}
