@@ -9,6 +9,7 @@ use App\Models\TransactionDetail;
 use App\Models\Supplier;
 use App\Models\ItemSupplierPrice;
 use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -517,7 +518,7 @@ class TransactionController extends Controller
         ];
 
         // Memuat view Blade khusus untuk PDF PH dari folder 'pdfs'
-        $pdf = PDF::loadView('pdf.penawaran_harga', $data);
+        $pdf = FacadePdf::loadView('pdf.penawaran_harga', $data);
 
         // Unduh file PDF dengan nama yang sesuai
         return $pdf->download('Penawaran_Harga_' . $transaction->transaction_number . '.pdf');
@@ -549,7 +550,7 @@ class TransactionController extends Controller
         ];
 
         // Memuat view Blade khusus untuk PDF Invoice dari folder 'pdfs'
-        $pdf = PDF::loadView('pdf.invoice', $data);
+        $pdf = FacadePdf::loadView('pdf.invoice', $data);
 
         // Unduh file PDF dengan nama yang sesuai
         return $pdf->download('Invoice_' . $invoice->invoice_number . '.pdf');
