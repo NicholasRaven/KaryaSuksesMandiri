@@ -11,30 +11,30 @@ use App\Models\ItemSupplierPrice;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage; // Untuk upload file
+use Illuminate\Support\Facades\Storage;
+use PDF; // Import the PDF Facade
+use Carbon\Carbon; // Pastikan ini di-use
 
 class TransactionController extends Controller
 {
     /**
      * 1. Dashboard Sistem Transaksi (Index)
      * Menampilkan daftar transaksi dengan fitur pencarian dan paginasi.
-     * [cite: image_30e534.png, image_6c0191.png]
      */
     public function index(Request $request)
     {
-        $query = Transaction::with(['customer', 'invoice', 'details']); // Eager load relasi yang dibutuhkan
+        $query = Transaction::with(['customer', 'invoice', 'details']);
+
         $search = $request->input('search');
         $perPage = $request->input('per_page', 10);
-        // Fitur Cari Transaksi berdasarkan nomor transaksi atau nama pelanggan
-        if ($search) { // Cek apakah $search memiliki nilai
+
+        if ($search) {
             $query->where('transaction_number', 'like', '%' . $search . '%')
                   ->orWhereHas('customer', function($q) use ($search) {
                       $q->where('name', 'like', '%' . $search . '%');
                   });
         }
 
-        // Ambil data paginasi menggunakan $perPage
-        // Gunakan appends($request->except('page')) agar parameter search/per_page tetap ada di link paginasi
         $transactions = $query->orderByDesc('created_at')->paginate($perPage)->appends($request->except('page'));
 
         return view('transactions.index', compact('transactions', 'search', 'perPage'));
@@ -43,210 +43,205 @@ class TransactionController extends Controller
     /**
      * 2. Tampilan Form Tambah Transaksi Baru
      * Menampilkan formulir untuk membuat transaksi baru, memilih pelanggan, dan menambahkan barang pesanan.
-     * [cite: image_30e515.png, image_6bfd54.png]
      */
     public function create()
     {
-        $customers = Customer::orderBy('name')->get(); // Ambil semua pelanggan untuk dropdown
-        $items = Item::orderBy('name')->get(); // Ambil semua item/barang untuk dropdown (jika pakai master barang)
-        return view('transactions.create', compact('customers', 'items'));
+        $customers = Customer::orderBy('name')->get();
+        $items = Item::orderBy('name')->get();
+        return view('transactions.create_step1', compact('customers', 'items'));
     }
 
     /**
      * 2. Simpan Transaksi Baru
      * Menyimpan data transaksi awal dan detail barang yang dipesan.
      * Setelah berhasil, mengarahkan ke langkah selanjutnya: input harga supplier.
-     * [cite: image_30e515.png, image_6bfd54.png]
      */
-public function store(Request $request)
-{
-    $validatedData = $request->validate([
-        'customer_id' => 'required|exists:customers,id',
-        'order_date' => 'required|date',
-        'shipping_address' => 'nullable|string',
-        'orderer_name' => 'nullable|string|max:255',
-        'orderer_email' => 'nullable|email|max:255',
-        'orderer_phone' => 'nullable|string|max:20',
-        'items' => 'required|array|min:1',
-        'items.*.item_id' => 'nullable|exists:items,id',
-        'items.*.item_name' => 'required_without:items.*.item_id|string|max:255',
-        'items.*.quantity' => 'required|integer|min:1',
-        'items.*.specification_notes' => 'nullable|string',
-    ]);
-
-    DB::beginTransaction();
-    try {
-    $inputDate = $request->order_date; // example: '2024-06-01'
-    $formattedDate = date('Ymd', strtotime($inputDate));
-
-    $latestTransactionId = Transaction::max('id') ?? 0;
-    $transactionNumber = 'TR-' . $formattedDate . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
-
-
-        // Create Transaction
-        $transaction = Transaction::create([
-            'transaction_number' => $transactionNumber,
-            'customer_id' => $validatedData['customer_id'],
-            'order_date' => $validatedData['order_date'],
-            'shipping_address' => $validatedData['shipping_address'],
-            'process_status' => 'PO Diterima',
-            'payment_status' => 'Belum Ada Invoice',
-            'total_price' => 0,
+    public function store(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'order_date' => 'required|date',
+            'delivery_address' => 'nullable|string',
+            'orderer_name' => 'nullable|string|max:255',
+            'orderer_email' => 'nullable|email|max:255',
+            'orderer_phone' => 'nullable|string|max:20',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'nullable|exists:items,id',
+            'items.*.item_name' => 'required_without:items.*.item_id|string|max:255',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.specification' => 'nullable|string',
         ]);
 
-        // Insert Transaction Details
-        foreach ($validatedData['items'] as $itemData) {
-            $itemName = $itemData['item_name'];
+        DB::beginTransaction();
+        try {
+            $latestTransaction = Transaction::orderByDesc('id')->first();
+            $nextId = ($latestTransaction) ? $latestTransaction->id + 1 : 1;
+            $transactionNumber = 'TR-' . date('Ymd') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 
-            if (!empty($itemData['item_id'])) {
-                $masterItem = Item::find($itemData['item_id']);
-                if ($masterItem) {
-                    $itemName = $masterItem->name;
+            $transaction = Transaction::create([
+                'transaction_number' => $transactionNumber,
+                'customer_id' => $request->customer_id,
+                'order_date' => $request->order_date,
+                'shipping_address' => $request->delivery_address,
+                'process_status' => 'PO Diterima', // Status awal
+                'payment_status' => 'Belum Ada Invoice', // Status pembayaran awal
+                'total_price' => 0,
+            ]);
+
+            foreach ($request->items as $itemData) {
+                $itemId = $itemData['item_id'] ?? null;
+                $itemName = $itemData['item_name'];
+
+                if ($itemId) {
+                    $masterItem = Item::find($itemId);
+                    if ($masterItem) {
+                        $itemName = $masterItem->name;
+                    }
                 }
+
+                TransactionDetail::create([
+                    'transaction_id' => $transaction->id,
+                    'item_id' => $itemId,
+                    'item_name' => $itemName,
+                    'quantity' => $itemData['quantity'],
+                    'specification_notes' => $itemData['specification'],
+                ]);
             }
 
-            TransactionDetail::create([
-                'transaction_id' => $transaction->id,
-                'item_id' => $itemData['item_id'] ?? null,
-                'item_name' => $itemName,
-                'quantity' => $itemData['quantity'],
-                'specification_notes' => $itemData['specification_notes'] ?? null,
-            ]);
+            DB::commit();
+            return redirect()->route('transactions.input_supplier_prices', $transaction->id)
+                             ->with('success', 'Transaksi awal berhasil dibuat. Lanjutkan untuk input harga supplier.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // dd($e->getMessage()); // Uncomment for debugging
+            return back()->withInput()->with('error', 'Gagal membuat transaksi: ' . $e->getMessage());
         }
-
-        DB::commit();
-        return redirect()->route('transactions.input_supplier_prices', $transaction->id)
-                         ->with('success', 'Transaksi awal berhasil dibuat. Lanjutkan untuk input harga supplier.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->withInput()->with('error', 'Gagal membuat transaksi: ' . $e->getMessage());
     }
-}
-
 
     /**
      * 3. Tampilan Form Input Harga Supplier
      * Menampilkan formulir untuk setiap barang pesanan agar bisa diinput harga dari berbagai supplier.
-     * [cite: image_30e26c.png, image_6bfaaa.png]
      */
-public function inputSupplierPrices(Transaction $transaction)
-{
-    $transaction->load(['details.item', 'details.supplierPrices.supplier']);
-    $suppliers = Supplier::orderBy('name')->get();
+    public function inputSupplierPrices(Transaction $transaction)
+    {
+        $transaction->load(['details.item', 'details.supplierPrices.supplier']);
+        $suppliers = Supplier::orderBy('name')->get();
 
-    // Find item names that have a matching supplier
-    $itemNamesWithSuppliers = Supplier::pluck('name')->toArray();
-
-    return view('transactions.input_supplier_prices', compact('transaction', 'suppliers', 'itemNamesWithSuppliers'));
-}
-
-
+        return view('transactions.input_supplier_prices', compact('transaction', 'suppliers'));
+    }
 
     /**
      * 3. Simpan Harga Supplier
      * Menyimpan harga penawaran dari supplier untuk setiap detail transaksi dan menandai yang dipilih.
-     * Setelah berhasil, mengarahkan ke langkah selanjutnya: generate PH.
-     * [cite: image_30e26c.png, image_6bfaaa.png]
      */
-public function storeSupplierPrices(Request $request, Transaction $transaction)
-{
-    $request->validate([
-        'item_prices' => 'required|array',
-        'item_prices.*' => 'required|array', // Each transaction_detail_id => array of prices
-        'selected_prices' => 'nullable|array',
-        'selected_prices.*' => 'nullable|integer|exists:item_supplier_prices,id',
-    ]);
+    public function storeSupplierPrices(Request $request, Transaction $transaction)
+    {
+        $request->validate([
+            'transaction_details' => 'required|array',
+            'transaction_details.*.id' => 'required|exists:transaction_details,id',
+            'transaction_details.*.selected_price_id' => 'nullable|integer',
+            'transaction_details.*.prices' => 'array',
+            'transaction_details.*.prices.*.supplier_id' => 'required|exists:suppliers,id',
+            'transaction_details.*.prices.*.price' => 'required|numeric|min:0',
+            'transaction_details.*.prices.*.notes' => 'nullable|string|max:255',
+        ]);
 
-    DB::beginTransaction();
-    try {
-        foreach ($request->item_prices as $transactionDetailId => $supplierPrices) {
-            $transactionDetail = TransactionDetail::findOrFail($transactionDetailId);
+        DB::beginTransaction();
+        try {
+            foreach ($request->transaction_details as $detailData) {
+                $transactionDetail = TransactionDetail::findOrFail($detailData['id']);
 
-            // Reset selection for this detail
-            ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)
-                             ->update(['is_selected' => false]);
+                ItemSupplierPrice::where('transaction_detail_id', $transactionDetail->id)
+                                 ->update(['is_selected' => false]);
 
-            $selectedPricePerUnit = null;
+                $selectedPricePerUnit = null;
 
-            foreach ($supplierPrices as $priceInput) {
-                $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
-                    [
-                        'transaction_detail_id' => $transactionDetailId,
-                        'supplier_id' => $priceInput['supplier_id'],
-                    ],
-                    [
-                        'price' => $priceInput['price'],
-                        'notes' => $priceInput['notes'] ?? null,
-                    ]
-                );
+                if (isset($detailData['prices']) && is_array($detailData['prices'])) {
+                    foreach ($detailData['prices'] as $priceInput) {
+                        $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
+                            [
+                                'transaction_detail_id' => $transactionDetail->id,
+                                'supplier_id' => $priceInput['supplier_id'],
+                            ],
+                            [
+                                'price' => $priceInput['price'],
+                                'notes' => $priceInput['notes'],
+                            ]
+                        );
 
-                // Check if this price is the selected one
-                if (isset($request->selected_prices[$transactionDetailId]) &&
-                    $itemSupplierPrice->id == $request->selected_prices[$transactionDetailId]) {
-                    $itemSupplierPrice->update(['is_selected' => true]);
-                    $selectedPricePerUnit = $itemSupplierPrice->price;
+                        if (isset($detailData['selected_price_id']) && $itemSupplierPrice->id == $detailData['selected_price_id']) {
+                            $itemSupplierPrice->update(['is_selected' => true]);
+                            $selectedPricePerUnit = $itemSupplierPrice->price;
+                        }
+                    }
                 }
+
+                if (isset($detailData['selected_price_id']) && $selectedPricePerUnit === null) {
+                    $existingSelectedPrice = ItemSupplierPrice::find($detailData['selected_price_id']);
+                    if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetail->id) {
+                        $existingSelectedPrice->update(['is_selected' => true]);
+                        $selectedPricePerUnit = $existingSelectedPrice->price;
+                    }
+                }
+
+                $transactionDetail->update([
+                    'final_price_per_unit' => $selectedPricePerUnit,
+                ]);
             }
 
-            // Handle selection of old prices
-            if (isset($request->selected_prices[$transactionDetailId]) && $selectedPricePerUnit === null) {
-                $existingSelectedPrice = ItemSupplierPrice::find($request->selected_prices[$transactionDetailId]);
-                if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetailId) {
-                    $existingSelectedPrice->update(['is_selected' => true]);
-                    $selectedPricePerUnit = $existingSelectedPrice->price;
-                }
-            }
+            DB::commit();
+            return redirect()->route('transactions.generate_ph', $transaction->id)
+                             ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
 
-            // Update the final selected price
-            $transactionDetail->update([
-                'final_price_per_unit' => $selectedPricePerUnit,
-            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // dd($e->getMessage()); // Uncomment for debugging
+            return back()->withInput()->with('error', 'Gagal menyimpan harga supplier: ' . $e->getMessage());
         }
-
-        DB::commit();
-        return redirect()->route('transactions.generate_ph', $transaction->id)
-                         ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->withInput()->with('error', 'Gagal menyimpan harga supplier: ' . $e->getMessage());
     }
-}
-
 
 
     /**
      * 4. Tampilan Penawaran Harga (PH)
      * Menampilkan rincian penawaran harga.
-     * [cite: image_30e24d.png, image_6bfa8a.png]
      */
     public function generatePH(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item','details.selectedSupplierPrice.supplier']); // Remove selectedSupplierPrice
+        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier']);
 
-        // Hitung subtotal untuk PH
+        // Set status proses dan pembayaran saat PH dibuat/dilihat pertama kali
+        if ($transaction->process_status == 'Harga Disepakati' || $transaction->process_status == 'PO Diterima') {
+            $transaction->update([
+                'process_status' => 'PH Dikirim',
+                'payment_status' => 'Belum Ada Invoice', // Inisialisasi payment_status
+            ]);
+        }
+
         $phSubtotal = 0;
         foreach ($transaction->details as $detail) {
-            $phSubtotal += $detail->final_price_per_unit * $detail->quantity;
+            if ($detail->selectedSupplierPrice) {
+                $phSubtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
+            }
         }
 
         return view('transactions.generate_ph', compact('transaction', 'phSubtotal'));
     }
 
-
     /**
      * 4. Aksi Konfirmasi PH Dikirim
      * Mengupdate status proses transaksi menjadi 'PH Dikirim'.
-     * [cite: image_30e24d.png, image_6bfa8a.png]
      */
     public function confirmPHSent(Request $request, Transaction $transaction)
     {
-        // Jika ada catatan PH dari form, simpan ke kolom ph_notes di transaksi
+        // Anda bisa menambahkan validasi $request->ph_notes jika ingin catatan wajib
         if ($request->has('ph_notes')) {
             $transaction->ph_notes = $request->ph_notes;
         }
 
+        // Pastikan status proses adalah 'PH Dikirim' dan payment_status diinisialisasi
         $transaction->process_status = 'PH Dikirim';
+        $transaction->payment_status = 'Belum Ada Invoice'; // Penting: Tetapkan status pembayaran awal
         $transaction->save();
 
         return redirect()->route('transactions.confirm_po_received', $transaction->id)
@@ -256,11 +251,10 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 5. Tampilan Konfirmasi PO Diterima
      * Menampilkan form untuk mengunggah file PO yang diterima dari pelanggan.
-     *
      */
     public function confirmPOReceived(Transaction $transaction)
     {
-        $transaction->load('customer', 'invoice'); // Load invoice untuk cek apakah sudah ada file PO
+        $transaction->load('customer', 'invoice');
         return view('transactions.confirm_po_received', compact('transaction'));
     }
 
@@ -268,52 +262,51 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
      * 5. Simpan Konfirmasi PO Diterima
      * Mengunggah file PO dan menyimpan path-nya di tabel `invoices`.
      * Mengupdate status proses transaksi.
-     * [cite: image_30e22d.png, image_6bfa54.png]
      */
     public function storePOReceived(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'po_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048', // Batasi tipe dan ukuran file
+            'po_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048',
         ]);
 
         DB::beginTransaction();
         try {
-            // Ambil atau buat instance Invoice (karena po_file ada di tabel invoices)
             $invoice = $transaction->invoice;
+            // Jika invoice belum ada, buat draft invoice
             if (!$invoice) {
-                // Jika invoice belum ada, buat draft invoice untuk menyimpan file PO
                 $invoice = Invoice::create([
                     'transaction_id' => $transaction->id,
-                    'invoice_number' => 'DRAFT-INV-' . $transaction->transaction_number, // Nomor draft sementara
+                    'invoice_number' => 'DRAFT-INV-' . $transaction->transaction_number,
                     'invoice_date' => now()->toDateString(),
+                    'due_date' => now()->addDays(7)->toDateString(), // Contoh: jatuh tempo 7 hari dari sekarang
                     'subtotal' => 0, 'tax_percentage' => 0, 'other_costs' => 0, 'total_amount' => 0
                 ]);
             }
 
             if ($request->hasFile('po_file')) {
                 // Hapus file lama jika ada
-                if ($invoice->po_file && Storage::disk('public')->exists($invoice->po_file)) {
-                    Storage::disk('public')->delete($invoice->po_file);
+                if ($invoice->po_file && Storage::exists(str_replace('storage/', 'public/', $invoice->po_file))) {
+                    Storage::delete(str_replace('storage/', 'public/', $invoice->po_file));
                 }
-                $filePath = $request->file('po_file')->store('po_files', 'public'); // Simpan di storage/app/public/po_files
-                $invoice->po_file = $filePath;
+                $filePath = $request->file('po_file')->store('public/po_files');
+                $invoice->po_file = str_replace('public/', 'storage/', $filePath); // Pastikan path yang disimpan adalah path publik
                 $invoice->save();
             }
 
-            // Setelah PO dikonfirmasi, transaksi siap untuk dibuat invoice.
-            // Status proses mungkin tetap "PO Diterima", atau bisa diubah menjadi "PO Dikonfirmasi"
-            // Untuk flow saat ini, biarkan 'PO Diterima' dan nanti 'Buat Invoice' yang akan mengubahnya.
-            // Jika Anda ingin status khusus setelah PO dikonfirmasi, Anda bisa menambahkannya di sini.
-            // Contoh: $transaction->process_status = 'PO Dikonfirmasi';
-            // $transaction->save();
+            // Update status transaksi menjadi PO Dikonfirmasi
+            $transaction->update([
+                'process_status' => 'PO Dikonfirmasi',
+                // payment_status tetap 'Belum Ada Invoice' sampai invoice dibuat
+            ]);
 
 
             DB::commit();
-            return redirect()->route('transactions.create_invoice', $transaction->id)
+            return redirect()->route('transactions.generate_invoice', $transaction->id)
                              ->with('success', 'Konfirmasi PO diterima dan file berhasil diunggah. Lanjutkan untuk membuat Invoice.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            // dd($e->getMessage()); // Uncomment for debugging
             return back()->withInput()->with('error', 'Gagal mengunggah file PO: ' . $e->getMessage());
         }
     }
@@ -322,11 +315,16 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 6. Tampilan Form Invoice
      * Menampilkan form untuk membuat atau mengedit invoice, dengan perhitungan subtotal, pajak, dan total.
-     * [cite: image_30e20e.png, image_6bfa31.png]
      */
-    public function createInvoice(Transaction $transaction)
+    public function generateInvoice(Transaction $transaction)
     {
         $transaction->load(['details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
+
+        // Jika invoice sudah ada, arahkan ke halaman edit payment status
+        if ($transaction->invoice) {
+            return redirect()->route('transactions.edit_payment_status', $transaction->id)
+                             ->with('info', 'Invoice sudah dibuat. Anda diarahkan ke halaman update pembayaran.');
+        }
 
         $subtotal = 0;
         foreach ($transaction->details as $detail) {
@@ -335,38 +333,43 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
             }
         }
 
-        $invoice = $transaction->invoice; // Ambil invoice yang sudah ada jika ada
+        // Nilai default untuk form
+        $defaultTaxPercentage = 11; // Contoh PPN 11%
+        $defaultOtherCosts = 0;
 
-        return view('transactions.generate_invoice', compact('transaction', 'subtotal', 'invoice'));
+        return view('transactions.generate_invoice', compact('transaction', 'subtotal', 'defaultTaxPercentage', 'defaultOtherCosts'));
     }
 
     /**
      * 6. Simpan Invoice
      * Menyimpan data invoice ke database dan memperbarui status transaksi.
-     * [cite: image_30e20e.png, image_6bfa31.png]
      */
-        public function storeInvoice(Request $request, Transaction $transaction)
+    public function storeInvoice(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'invoice_number' => 'required|string|unique:invoices,invoice_number,' . ($transaction->invoice ? $transaction->invoice->id : 'NULL') . ',id,transaction_id,' . $transaction->id,
+            // Validasi invoice_number unik per transaksi atau secara global jika dibutuhkan
+            'invoice_number' => 'required|string|max:255|unique:invoices,invoice_number,' . ($transaction->invoice ? $transaction->invoice->id : 'NULL') . ',id,transaction_id,' . $transaction->id,
             'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'due_date' => 'required|date|after_or_equal:invoice_date',
+            'tax_percentage' => 'nullable|numeric|min:0',
             'other_costs' => 'nullable|numeric|min:0',
-            'subtotal_calculated' => 'required|numeric|min:0', // Hidden field dari frontend untuk keamanan
         ]);
 
         DB::beginTransaction();
         try {
-            $subtotal = $request->input('subtotal_calculated'); // Ambil subtotal dari hidden input (sudah dihitung di frontend)
+            $subtotal = $transaction->details->sum(function ($detail) {
+                return ($detail->final_price_per_unit ?? 0) * $detail->quantity;
+            });
+
             $taxPercentage = $request->input('tax_percentage', 0);
             $otherCosts = $request->input('other_costs', 0);
 
             $taxAmount = ($taxPercentage / 100) * $subtotal;
             $totalAmount = $subtotal + $taxAmount + $otherCosts;
 
-            Invoice::updateOrCreate(
-                ['transaction_id' => $transaction->id],
+            // Update atau Buat Invoice baru
+            $invoice = Invoice::updateOrCreate(
+                ['transaction_id' => $transaction->id], // Cari berdasarkan transaction_id
                 [
                     'invoice_number' => $request->invoice_number,
                     'invoice_date' => $request->invoice_date,
@@ -375,66 +378,180 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
                     'tax_percentage' => $taxPercentage,
                     'other_costs' => $otherCosts,
                     'total_amount' => $totalAmount,
-                    // po_file_path tidak diupdate di sini, sudah diupdate di storePOReceived
+                    // po_file akan tetap dari yang sudah diupload sebelumnya di storePOReceived
+                    // payment_received_date, payment_method, payment_proof_file, reminder_sent_at akan nullable
                 ]
             );
 
+            // Update status transaksi setelah invoice dibuat
             $transaction->update([
-                'process_status' => 'Invoice Dibuat', // Update status proses [cite: image_30e534.png, image_6c0191.png]
-                'payment_status' => 'Belum Bayar', // Update status pembayaran [cite: image_30e534.png, image_6c0191.png]
-                'total_price' => $totalAmount, // Update total harga keseluruhan transaksi
+                'process_status' => 'Invoice Dibuat',
+                'payment_status' => 'Belum Bayar', // Set status pembayaran menjadi "Belum Bayar"
+                'total_price' => $totalAmount,
             ]);
 
             DB::commit();
-            return redirect()->route('transactions.index')->with('success', 'Invoice berhasil disimpan.');
+            // Arahkan ke halaman detail transaksi, atau bisa juga ke daftar pembayaran
+            return redirect()->route('transactions.show', $transaction->id)->with('success', 'Invoice berhasil disimpan.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            // dd($e->getMessage()); // Uncomment for debugging
             return back()->withInput()->with('error', 'Gagal menyimpan invoice: ' . $e->getMessage());
         }
     }
 
     /**
      * Aksi untuk melihat detail transaksi (view button)
-     * [cite: image_30e534.png, image_6c0191.png]
+     * Ini adalah metode `show()` yang harus ada di controller ini.
      */
     public function show(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item', 'details.supplierPrices.supplier', 'invoice']); // Load semua relasi yang mungkin
+        $transaction->load(['customer', 'details.item', 'details.supplierPrices.supplier', 'invoice']);
         return view('transactions.show', compact('transaction'));
     }
 
     /**
-     * 7. Update Status Pembayaran (dari Dashboard)
-     * Mengupdate status pembayaran transaksi (misal: dari "Belum Bayar" menjadi "Lunas").
-     * [cite: image_30e534.png, image_6c0191.png]
+     * Menampilkan form untuk update status pembayaran invoice.
+     * Ini adalah form yang sama yang akan diakses dari PaymentController::show.
+     */
+    public function editPaymentStatus(Transaction $transaction)
+    {
+        $transaction->load(['invoice', 'customer', 'details.item', 'details.selectedSupplierPrice.supplier']);
+
+        if (!$transaction->invoice) {
+            return back()->with('error', 'Invoice belum tersedia untuk transaksi ini.');
+        }
+
+        return view('transactions.edit_payment_status', compact('transaction'));
+    }
+
+    /**
+     * Mengupdate status pembayaran invoice dan detail pembayaran.
      */
     public function updatePaymentStatus(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'payment_status' => 'required|in:Belum Bayar,Lunas', // Sesuaikan dengan status yang valid
+            'payment_status' => 'required|string|in:Belum Bayar,Jatuh Tempo,Lunas',
+            'payment_received_date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:255',
+            'payment_proof_file' => 'nullable|file|mimes:jpeg,png,pdf|max:2048', // Max 2MB
         ]);
 
-        $transaction->update(['payment_status' => $request->payment_status]); // Perubahan status pembayaran [cite: image_30e534.png, image_6c0191.png]
+        if (!$transaction->invoice) {
+            return back()->with('error', 'Invoice tidak ditemukan.');
+        }
 
-        return back()->with('success', 'Status pembayaran berhasil diperbarui menjadi ' . $request->payment_status . '.');
+        DB::beginTransaction(); // Memulai transaksi database
+        try {
+            $invoice = $transaction->invoice;
+
+            // Handle file upload untuk bukti pembayaran
+            $paymentProofFilePath = $invoice->payment_proof_file; // Pertahankan file lama jika tidak ada upload baru
+            if ($request->hasFile('payment_proof_file')) {
+                // Hapus file lama jika ada
+                if ($paymentProofFilePath && Storage::exists(str_replace('storage/', 'public/', $paymentProofFilePath))) {
+                    Storage::delete(str_replace('storage/', 'public/', $paymentProofFilePath));
+                }
+                $filePath = $request->file('payment_proof_file')->store('public/payment_proofs');
+                $paymentProofFilePath = str_replace('public/', 'storage/', $filePath); // Ubah ke path yang bisa diakses publik
+            }
+
+            // Update detail pembayaran di invoice
+            $invoice->update([
+                'payment_received_date' => $request->payment_received_date,
+                'payment_method' => $request->payment_method,
+                'payment_proof_file' => $paymentProofFilePath,
+                // reminder_sent_at tidak diupdate di sini, hanya saat reminder dikirim
+            ]);
+
+            // Update payment_status di transaksi
+            $transaction->update([
+                'payment_status' => $request->payment_status,
+            ]);
+
+            DB::commit(); // Commit transaksi database
+            return redirect()->route('transactions.show', $transaction->id)->with('success', 'Status pembayaran dan detail invoice berhasil diperbarui!');
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback transaksi jika ada error
+            // dd($e->getMessage()); // Debugging
+            return back()->withInput()->with('error', 'Gagal memperbarui status pembayaran: ' . $e->getMessage());
+        }
     }
 
+
     /**
-     * 8. Menandai Transaksi Selesai (dari Dashboard)
-     * Mengupdate status proses transaksi menjadi "Selesai". Memerlukan status pembayaran "Lunas".
-     * [cite: image_30e534.png, image_6c0191.png]
+     * Menandai transaksi sebagai "Selesai" (misal: pengiriman selesai).
+     * Biasanya di dashboard atau di detail transaksi.
      */
     public function markAsCompleted(Transaction $transaction)
     {
-        // Hanya bisa diselesaikan jika pembayaran sudah lunas
         if ($transaction->payment_status !== 'Lunas') {
-            return back()->with('error', 'Transaksi hanya bisa diselesaikan jika status pembayaran Lunas.');
+            return back()->with('error', 'Transaksi hanya bisa diselesaikan jika status pembayaran sudah "Lunas".');
         }
 
-        $transaction->update(['process_status' => 'Selesai']); // Perubahan status proses [cite: image_30e534.png, image_6c0191.png]
+        $transaction->update(['process_status' => 'Selesai']);
 
         return back()->with('success', 'Transaksi berhasil ditandai sebagai Selesai.');
     }
 
+    /**
+     * Unduh Penawaran Harga (PH) sebagai PDF.
+     */
+    public function downloadPHPdf(Transaction $transaction)
+    {
+        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier']);
+
+        $phSubtotal = 0;
+        foreach ($transaction->details as $detail) {
+            if ($detail->selectedSupplierPrice) {
+                $phSubtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
+            }
+        }
+
+        $data = [
+            'transaction' => $transaction,
+            'phSubtotal' => $phSubtotal,
+            // Tambahkan data lain yang diperlukan di PDF
+        ];
+
+        // Memuat view Blade khusus untuk PDF PH dari folder 'pdfs'
+        $pdf = PDF::loadView('pdf.penawaran_harga', $data);
+
+        // Unduh file PDF dengan nama yang sesuai
+        return $pdf->download('Penawaran_Harga_' . $transaction->transaction_number . '.pdf');
+    }
+
+    /**
+     * Unduh Invoice sebagai PDF.
+     */
+    public function downloadInvoicePdf(Transaction $transaction)
+    {
+        // Pastikan invoice dan relasi lainnya dimuat
+        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
+
+        if (!$transaction->invoice) {
+            return back()->with('error', 'Invoice belum tersedia untuk transaksi ini.');
+        }
+
+        $invoice = $transaction->invoice;
+        $subtotal = $invoice->subtotal;
+        $taxAmount = ($invoice->tax_percentage / 100) * $subtotal;
+        $totalAmount = $invoice->total_amount;
+
+        $data = [
+            'transaction' => $transaction,
+            'invoice' => $invoice,
+            'subtotal' => $subtotal,
+            'taxAmount' => $taxAmount,
+            'totalAmount' => $totalAmount,
+        ];
+
+        // Memuat view Blade khusus untuk PDF Invoice dari folder 'pdfs'
+        $pdf = PDF::loadView('pdf.invoice', $data);
+
+        // Unduh file PDF dengan nama yang sesuai
+        return $pdf->download('Invoice_' . $invoice->invoice_number . '.pdf');
+    }
 }

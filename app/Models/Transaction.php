@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
@@ -14,20 +17,35 @@ class Transaction extends Model
         'customer_id',
         'order_date',
         'process_status',
-        'payment_status',
+        'payment_status', // Pastikan ini ada di kolom database Anda
+        'shipping_address',
+        'orderer_name',
+        'orderer_email',
+        'orderer_phone',
+        'total_price',
+        'ph_notes',
     ];
 
-    public function customer()
+    /**
+     * Get the customer that owns the Transaction.
+     */
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    public function details()
+    /**
+     * Get the transaction details for the transaction.
+     */
+    public function details(): HasMany
     {
         return $this->hasMany(TransactionDetail::class);
     }
 
-    public function invoice()
+    /**
+     * Get the invoice associated with the transaction.
+     */
+    public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
     }
