@@ -14,7 +14,7 @@
                     <h3 class="text-center text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">PENAWARAN HARGA</h3>
                     <h4 class="text-center text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ $transaction->customer->name }}</h4>
                     <p class="text-center text-sm text-gray-600 dark:text-gray-400 mb-6">Tanggal : {{ \Carbon\Carbon::now()->translatedFormat('d/m/Y') }}</p>
-
+gtd
                     <!-- Description -->
                     <p class="mb-4 text-gray-700 dark:text-gray-300">Berikut ini kami berikan penawaran harga dengan rincian sebagai berikut:</p>
 

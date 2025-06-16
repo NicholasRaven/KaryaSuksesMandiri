@@ -76,9 +76,12 @@ public function store(Request $request)
 
     DB::beginTransaction();
     try {
-        // Generate transaction number
-        $latestTransactionId = Transaction::max('id') ?? 0;
-        $transactionNumber = 'TR-' . date('Ymd') . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
+    $inputDate = $request->order_date; // example: '2024-06-01'
+    $formattedDate = date('Ymd', strtotime($inputDate));
+
+    $latestTransactionId = Transaction::max('id') ?? 0;
+    $transactionNumber = 'TR-' . $formattedDate . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
+
 
         // Create Transaction
         $transaction = Transaction::create([
