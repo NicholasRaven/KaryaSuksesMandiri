@@ -5,23 +5,32 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Middleware\UserMiddleware;
+use App\Http\Middleware\AdminMiddleware;
+use Illuminate\Support\Facades\Auth;
 
-Route::get('/', function () {
+
+
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->middleware(['auth', 'verified'])->name('dashboard');
+
+  Route::get('/', function () {
     return view('auth.login');
-});
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    Route::get('/customer', function () {
-        return redirect()->route('customers.index');
     });
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        Route::get('/customer', function () {
+                    return redirect()->route('customers.index');
+
+    });
+
+
+
     Route::resource('customers', CustomerController::class);
     Route::resource('suppliers', SupplierController::class);
     Route::resource('transactions', TransactionController::class);
@@ -45,6 +54,22 @@ Route::middleware('auth')->group(function () {
 
     //Rute untuk PDF Downloader
     Route::get('/{transaction}/download-ph-pdf', [TransactionController::class, 'downloadPHPdf'])->name('transactions.download_ph_pdf');
+    });
+     Route::get('/{transaction}/download-invoice-pdf', [TransactionController::class, 'downloadInvoicePdf'])->name('transactions.download_invoice_pdf');
+
+
+Route::middleware(['auth', 'UserMiddleware'])->group(function () {
+
 });
+
+Route::middleware(['auth', 'AdminMiddleware'])->group(function () {
+    Route::get('register', [RegisteredUserController::class, 'create'])
+        ->name('register');
+
+    Route::post('register', [RegisteredUserController::class, 'store']);
+
+});
+
+
 
 require __DIR__.'/auth.php';

@@ -452,8 +452,27 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 
         // Return PDF sebagai response download
         return $pdf->download('PH-' . $transaction->transaction_number . '.pdf');
+
     }
 
+    public function downloadInvoicePdf(Transaction $transaction)
+    {
+        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
+
+        // Hitung subtotal untuk invoice
+        $subtotal = 0;
+        foreach ($transaction->details as $detail) {
+            if ($detail->selectedSupplierPrice) {
+                $subtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
+            }
+        }
+
+        // Generate PDF menggunakan view
+        $pdf = Pdf::loadView('pdf.invoice', compact('transaction', 'subtotal'));
+
+        // Return PDF sebagai response download
+        return $pdf->download('Invoice-' . $transaction->transaction_number . '.pdf');
+    }
 
 
 }

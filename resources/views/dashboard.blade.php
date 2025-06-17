@@ -6,16 +6,20 @@
          class="fixed z-30 inset-y-0 left-0 w-64 bg-gray-200 text-black transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0">
       <div class="p-4 text-2xl font-bold">KSM</div>
       <nav class="mt-4 space-y-4 pl-4 text-lg">
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+        <a href="{{ route('dashboard') }}" class="flex items-center space-x-2 hover:text-blue-600">
           <span>Dashboard</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>User</span>
+
+        @if (Auth::check() && Auth::user()->UserRole == 'SuperAdmin')
+        <a href="{{ route('register') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>User (Create)</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+        @endif
+
+        <a href="{{ route('customers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
           <span>Customer</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
+        <a href="{{ route('suppliers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
           <span>Supplier</span>
         </a>
         <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
@@ -44,4 +48,3 @@
 </x-app-layout>
 
 
-    

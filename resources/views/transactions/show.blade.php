@@ -47,6 +47,7 @@
                         </div>
                     </div>
 
+                <div class="mb-8 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
                     <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Barang Dipesan</h4>
                     @if ($transaction->details->isEmpty())
                         <p class="text-gray-500 dark:text-gray-400 mb-4">Tidak ada barang yang dipesan untuk transaksi ini.</p>
@@ -73,47 +74,54 @@
                                 </tbody>
                             </table>
                         </div>
+                <div class="mb-8 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
+                <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3 mt-6">Harga Penawaran Supplier (per Barang)</h4>
 
-                        <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3 mt-6">Harga Penawaran Supplier (per Barang)</h4>
-                        @foreach ($transaction->details as $detail)
-                            <div class="mb-4 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
-                                <p class="font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $detail->item_name }} ({{ $detail->quantity }} pcs)</p>
-                                @if ($detail->supplierPrices->isEmpty())
-                                    <p class="text-gray-500 dark:text-gray-400">Belum ada harga penawaran dari supplier.</p>
-                                @else
-                                    <div class="overflow-x-auto relative shadow-md sm:rounded-lg">
-                                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                                <tr>
-                                                    <th scope="col" class="py-3 px-6">Supplier</th>
-                                                    <th scope="col" class="py-3 px-6">Harga</th>
-                                                    <th scope="col" class="py-3 px-6">Catatan</th>
-                                                    <th scope="col" class="py-3 px-6">Dipilih</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($detail->supplierPrices as $supplierPrice)
-                                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                                                        <td class="py-4 px-6">{{ $supplierPrice->supplier->name }}</td>
-                                                        <td class="py-4 px-6">Rp {{ number_format($supplierPrice->price, 0, ',', '.') }}</td>
-                                                        <td class="py-4 px-6">{{ $supplierPrice->notes ?? '-' }}</td>
-                                                        <td class="py-4 px-6">
-                                                            @if ($supplierPrice->is_selected)
-                                                                <span class="text-green-500">✔</span>
-                                                            @else
-                                                                <span class="text-red-500">✖</span>
-                                                            @endif
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
+                @foreach ($transaction->details as $detail)
+                    <div class="mb-4 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
+                        <p class="font-medium text-gray-700 dark:text-gray-300 mb-2">{{ $detail->item_name }} ({{ $detail->quantity }} pcs)</p>
+                        @if ($detail->supplierPrices->isEmpty())
+                            <p class="text-gray-500 dark:text-gray-400">Belum ada harga penawaran dari supplier.</p>
+                        @else
+                            <div class="overflow-x-auto relative shadow-md sm:rounded-lg">
+                                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                        <tr>
+                                            <th scope="col" class="py-3 px-6">Supplier</th>
+                                            <th scope="col" class="py-3 px-6">Harga</th>
+                                            <th scope="col" class="py-3 px-6">Catatan</th>
+                                            <th scope="col" class="py-3 px-6">Dipilih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($detail->supplierPrices as $supplierPrice)
+                                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                                <td class="py-4 px-6">{{ $supplierPrice->supplier->name }}</td>
+                                                <td class="py-4 px-6">Rp {{ number_format($supplierPrice->price, 0, ',', '.') }}</td>
+                                                <td class="py-4 px-6">{{ $supplierPrice->notes ?? '-' }}</td>
+                                                <td class="py-4 px-6">
+                                                    @if ($supplierPrice->is_selected)
+                                                        <span class="text-green-500">✔</span>
+                                                    @else
+                                                        <span class="text-red-500">✖</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
-                        @endforeach
-                    @endif
+                        @endif
+                    </div>
+                @endforeach
+                {{-- Tombol Download PH PDF --}}
+                <a href="{{ route('transactions.download_ph_pdf', $transaction->id) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150 mr-4 mt-4">
+                    <i class="fas fa-file-pdf mr-2"></i> Download PH PDF
+                </a>
+                </div>
+                        @endif
 
+                <div class="mb-8 p-4 border border-gray-300 dark:border-gray-700 rounded-md">
                     <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3 mt-6">Informasi Invoice</h4>
                     @if ($transaction->invoice)
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -147,13 +155,17 @@
                     @else
                         <p class="text-gray-500 dark:text-gray-400">Invoice belum dibuat untuk transaksi ini.</p>
                     @endif
+                      <a href="{{ route('transactions.download_invoice_pdf', $transaction->id) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150 mt-4">
+                                <i class="fas fa-file-pdf mr-2"></i> Download Invoice PDF
+                            </a>
+                </div>
+            </div>
 
-
-                    <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
-                        <a href="{{ route('transactions.index') }}" class="inline-block align-baseline font-bold text-sm text-blue-600 hover:text-blue-800">
-                            Kembali ke Daftar Transaksi
-                        </a>
-                    </div>
+                <div class="mt-6 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4">
+                <a href="{{ route('transactions.index') }}"
+                class="inline-block align-baseline font-bold text-sm text-red-600 hover:text-white border border-red-600 hover:bg-red-600 px-4 py-2 rounded transition">
+                    Kembali ke Daftar Transaksi
+                </a>
                 </div>
             </div>
         </div>

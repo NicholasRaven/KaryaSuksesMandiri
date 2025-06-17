@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Invoice {{ $invoice->invoice_number }}</title>
+    <title>Invoice {{ $transaction->invoice->invoice_number }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -81,7 +81,7 @@
         .signature {
             margin-top: 80px;
             text-align: center;
-            float: right; /* Untuk posisi di kanan bawah */
+            float: right;
             width: 200px;
         }
         .signature p {
@@ -113,15 +113,15 @@
     <table class="invoice-details">
         <tr>
             <td class="label">Nomor Invoice:</td>
-            <td>{{ $invoice->invoice_number }}</td>
+            <td>{{ $transaction->invoice->invoice_number }}</td>
             <td class="label">Tanggal Invoice:</td>
-            <td>{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d M Y') }}</td>
+            <td>{{ \Carbon\Carbon::parse($transaction->invoice->invoice_date)->format('d M Y') }}</td>
         </tr>
         <tr>
             <td class="label">Tanggal PO:</td>
             <td>{{ \Carbon\Carbon::parse($transaction->order_date)->format('d M Y') }}</td>
             <td class="label">Jatuh Tempo:</td>
-            <td>{{ $invoice->due_date ? \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') : '-' }}</td>
+            <td>{{ $transaction->invoice->due_date ? \Carbon\Carbon::parse($transaction->invoice->due_date)->format('d M Y') : '-' }}</td>
         </tr>
         <tr>
             <td class="label">Nomor Transaksi:</td>
@@ -172,13 +172,17 @@
                 <td>Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td class="label">Pajak ({{ $invoice->tax_percentage ?? 0 }}%):</td>
-                <td>Rp {{ number_format($taxAmount, 0, ',', '.') }}</td>
+                <td class="label">Pajak ({{ $transaction->invoice->tax_percentage ?? 0 }}%):</td>
+                <td>Rp {{ number_format((($transaction->invoice->tax_percentage ?? 0) / 100) * $subtotal, 0, ',', '.') }}</td>
             </tr>
             <tr>
                 <td class="label">Biaya Lain-lain:</td>
-                <td>Rp {{ number_format($invoice->other_costs ?? 0, 0, ',', '.') }}</td>
+                <td>Rp {{ number_format($transaction->invoice->other_costs ?? 0, 0, ',', '.') }}</td>
             </tr>
+            @php
+                $taxAmount = (($transaction->invoice->tax_percentage ?? 0) / 100) * $subtotal;
+                $totalAmount = $subtotal + $taxAmount + ($transaction->invoice->other_costs ?? 0);
+            @endphp
             <tr class="total-amount">
                 <td class="label">TOTAL INVOICE:</td>
                 <td>Rp {{ number_format($totalAmount, 0, ',', '.') }}</td>
@@ -187,8 +191,8 @@
     </div>
 
     <div class="po-info">
-        @if($invoice->po_file)
-            <p>File PO: Terlampir ({{ basename($invoice->po_file) }})</p>
+        @if($transaction->invoice->po_file)
+            <p>File PO: Terlampir ({{ basename($transaction->invoice->po_file) }})</p>
         @else
             <p>File PO: Tidak terlampir</p>
         @endif
