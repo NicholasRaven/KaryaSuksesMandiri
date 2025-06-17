@@ -42,6 +42,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('transactions/{transaction}/create-invoice', [TransactionController::class, 'createInvoice'])->name('transactions.create_invoice'); // Step 5 GET
     Route::post('transactions/{transaction}/store-invoice', [TransactionController::class, 'storeInvoice'])->name('transactions.store_invoice'); // Step 5 POST
+
+    //Rute untuk PDF Downloader
+    Route::get('/{transaction}/download-ph-pdf', [TransactionController::class, 'downloadPHPdf'])->name('transactions.download_ph_pdf');
 });
 
 require __DIR__.'/auth.php';

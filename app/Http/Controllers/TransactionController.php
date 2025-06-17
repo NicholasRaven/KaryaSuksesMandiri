@@ -9,6 +9,7 @@ use App\Models\TransactionDetail;
 use App\Models\Supplier;
 use App\Models\ItemSupplierPrice;
 use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage; // Untuk upload file
@@ -77,8 +78,10 @@ public function store(Request $request)
     DB::beginTransaction();
     try {
         // Generate transaction number
+         // Generate transaction number based on order date
+        $transactionDate = \Carbon\Carbon::parse($validatedData['order_date'])->format('Ymd');
         $latestTransactionId = Transaction::max('id') ?? 0;
-        $transactionNumber = 'TR-' . date('Ymd') . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
+        $transactionNumber = 'TR-' . $transactionDate . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
 
         // Create Transaction
         $transaction = Transaction::create([
@@ -150,9 +153,8 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 {
     $request->validate([
         'item_prices' => 'required|array',
-        'item_prices.*' => 'required|array', // Each transaction_detail_id => array of prices
+        'item_prices.*' => 'required|array',
         'selected_prices' => 'nullable|array',
-        'selected_prices.*' => 'nullable|integer|exists:item_supplier_prices,id',
     ]);
 
     DB::beginTransaction();
@@ -162,11 +164,12 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 
             // Reset selection for this detail
             ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)
-                             ->update(['is_selected' => false]);
+                ->update(['is_selected' => false]);
 
+            $selectedInputValue = $request->selected_prices[$transactionDetailId] ?? null;
             $selectedPricePerUnit = null;
 
-            foreach ($supplierPrices as $priceInput) {
+            foreach ($supplierPrices as $index => $priceInput) {
                 $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
                     [
                         'transaction_detail_id' => $transactionDetailId,
@@ -179,23 +182,25 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
                 );
 
                 // Check if this price is the selected one
-                if (isset($request->selected_prices[$transactionDetailId]) &&
-                    $itemSupplierPrice->id == $request->selected_prices[$transactionDetailId]) {
+                if ($selectedInputValue !== null && (
+                        $selectedInputValue == ($priceInput['id'] ?? ('new_' . $index)) ||
+                        $selectedInputValue == $itemSupplierPrice->id
+                    )) {
                     $itemSupplierPrice->update(['is_selected' => true]);
                     $selectedPricePerUnit = $itemSupplierPrice->price;
                 }
             }
 
-            // Handle selection of old prices
-            if (isset($request->selected_prices[$transactionDetailId]) && $selectedPricePerUnit === null) {
-                $existingSelectedPrice = ItemSupplierPrice::find($request->selected_prices[$transactionDetailId]);
+            // Final fallback if selection is still not handled
+            if ($selectedPricePerUnit === null && $selectedInputValue !== null && is_numeric($selectedInputValue)) {
+                $existingSelectedPrice = ItemSupplierPrice::find($selectedInputValue);
                 if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetailId) {
                     $existingSelectedPrice->update(['is_selected' => true]);
                     $selectedPricePerUnit = $existingSelectedPrice->price;
                 }
             }
 
-            // Update the final selected price
+            // Update the final selected price per unit
             $transactionDetail->update([
                 'final_price_per_unit' => $selectedPricePerUnit,
             ]);
@@ -203,14 +208,12 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 
         DB::commit();
         return redirect()->route('transactions.generate_ph', $transaction->id)
-                         ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
+            ->with('success', 'Harga supplier berhasil disimpan. Lanjutkan ke pembuatan Penawaran Harga.');
     } catch (\Exception $e) {
         DB::rollBack();
         return back()->withInput()->with('error', 'Gagal menyimpan harga supplier: ' . $e->getMessage());
     }
 }
-
-
 
     /**
      * 4. Tampilan Penawaran Harga (PH)
@@ -433,5 +436,24 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 
         return back()->with('success', 'Transaksi berhasil ditandai sebagai Selesai.');
     }
+
+    public function downloadPHPdf(Transaction $transaction)
+    {
+        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier']);
+
+        // Hitung subtotal untuk PH
+        $phSubtotal = 0;
+        foreach ($transaction->details as $detail) {
+            $phSubtotal += $detail->final_price_per_unit * $detail->quantity;
+        }
+
+        // Generate PDF menggunakan view
+        $pdf = Pdf::loadView('pdf.penawaran_harga', compact('transaction', 'phSubtotal'));
+
+        // Return PDF sebagai response download
+        return $pdf->download('PH-' . $transaction->transaction_number . '.pdf');
+    }
+
+
 
 }

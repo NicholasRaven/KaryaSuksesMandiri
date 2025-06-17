@@ -33,21 +33,18 @@
         <input type="text" name="item_prices[{{ $detail->id }}][{{ $price_index }}][notes]" id="item_prices_{{ $detail->id }}_{{ $price_index }}_notes" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full" value="{{ isset($supplier_price) ? $supplier_price->notes : '' }}">
     </div>
 
-@if (isset($supplier_price))
-    {{-- Select Best Price Radio --}}
-    <div class="flex items-center justify-center">
-        <label for="selected_price_id_{{ $detail->id }}_{{ $price_index }}" class="inline-flex items-center">
-            <input type="radio"
-                name="selected_prices[{{ $detail->id }}]"
-                value="{{ $supplier_price->id }}"
-                id="selected_price_id_{{ $detail->id }}_{{ $price_index }}"
-                data-price-row-id="{{ $detail->id }}_{{ $price_index }}"
-                class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800"
-                {{ $isSelected ? 'checked' : '' }}>
-            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">Pilih</span>
-        </label>
-    </div>
-@endif
+<div class="flex items-center justify-center">
+    <label for="selected_price_id_{{ $detail->id }}_{{ $price_index }}" class="inline-flex items-center">
+        <input type="radio"
+            name="selected_prices[{{ $detail->id }}]"
+            value="{{ $supplier_price->id ?? 'new_' . $price_index }}"
+            id="selected_price_id_{{ $detail->id }}_{{ $price_index }}"
+            data-price-row-id="{{ $detail->id }}_{{ $price_index }}"
+            class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800"
+            {{ $isSelected ? 'checked' : '' }}>
+        <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">Pilih</span>
+    </label>    
+</div>
 
 
 </div>
