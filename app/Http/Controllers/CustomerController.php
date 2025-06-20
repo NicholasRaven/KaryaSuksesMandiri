@@ -43,11 +43,19 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
-            'email'=>'required|string|email|max:255|unique:customers',
-            'phone_number'=>'nullable|string|max:20',
+            'name'=>'required|string|min:3|max:50',
+            'email'=>'required|string|email|min:3|max:255|unique:customers',
+            'phone_number'=>'nullable|string|regex:/^[0-9]{10,15}$/',
             'type'=>'required|string|in:Individu,Perusahaan',
             'address'=>'nullable|string'
+        ],
+        [
+            'email.email' => 'Format email tidak valid (harus mengandung @)',
+            'name.min' => 'Nama pelanggan minimal 3 karakter.',
+            'name.max' => 'Nama pelanggan maksimal 50 karakter.',
+            'phone_number.integer' => 'Nomor telepon harus berupa angka.',
+            'phone_number.min' => 'Nomor telepon minimal 10 digit.',
+            'phone_number.max' => 'Nomor telepon maksimal 15 digit.',
         ]);
 
         Customer::create($request->all());
@@ -77,11 +85,19 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
+            'name'=>'required|string|min:3|max:50',
             'email'=>'required|string|email|max:255|unique:customers,email,'.$customer->id,
-            'phone_number'=>'nullable|string|max:20',
+            'phone_number'=>'nullable|string|regex:/^[0-9]{10,15}$/',
             'type'=>'required|string|in:Individu,Perusahaan',
             'address'=>'nullable|string',
+        ],
+        [
+            'email.email' => 'Format email tidak valid (harus mengandung @)',
+            'name.min' => 'Nama pelanggan minimal 3 karakter.',
+            'name.max' => 'Nama pelanggan maksimal 50 karakter.',
+            'phone_number.integer' => 'Nomor telepon harus berupa angka.',
+            'phone_number.min' => 'Nomor telepon minimal 10 digit.',
+            'phone_number.max' => 'Nomor telepon maksimal 15 digit.',
         ]);
 
         $customer->update($request->all());

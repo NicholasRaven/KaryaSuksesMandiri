@@ -23,15 +23,18 @@
                                 @enderror
                             </div>
                             <div>
+                                @if ($invoice->invoice_date)
                                 <label for="invoice_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tanggal Invoice:</label>
-                                <input type="date" name="invoice_date" id="invoice_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('invoice_date') border-red-500 @enderror" value="{{ old('invoice_date', $invoice ? $invoice->invoice_date : date('Y-m-d')) }}" required>
+                                <input type="date" name="invoice_date" id="invoice_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('invoice_date') border-red-500 @enderror" value="{{ old('invoice_date', $invoice ? $invoice->invoice_date : date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
                                 @error('invoice_date')
-                                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
+                                @endif
+
                             </div>
                             <div>
                                 <label for="due_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tanggal Jatuh Tempo:</label>
-                                <input type="date" name="due_date" id="due_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('due_date') border-red-500 @enderror" value="{{ old('due_date', $invoice ? $invoice->due_date : '') }}">
+                                <input type="date" name="due_date" id="due_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('due_date') border-red-500 @enderror" value="{{ old('due_date', $invoice ? $invoice->due_date : '') }}" min="{{ old('invoice_date', $invoice->invoice_date) }}" required>
                                 @error('due_date')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror

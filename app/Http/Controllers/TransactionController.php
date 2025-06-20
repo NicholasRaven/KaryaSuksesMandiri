@@ -11,6 +11,8 @@ use App\Models\ItemSupplierPrice;
 use App\Models\Invoice;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage; // Untuk upload file
 
@@ -60,16 +62,22 @@ public function store(Request $request)
 {
     $validatedData = $request->validate([
         'customer_id' => 'required|exists:customers,id',
-        'order_date' => 'required|date',
+        'order_date' => 'required|date|after_or_equal:today',
         'shipping_address' => 'nullable|string',
-        'orderer_name' => 'nullable|string|max:255',
-        'orderer_email' => 'nullable|email|max:255',
-        'orderer_phone' => 'nullable|string|max:20',
+        'orderer_name' => 'nullable|string|min:3|max:50',
+        'orderer_email' => 'nullable|email|min:3',
+        'orderer_phone' => 'nullable|string|regex:/^[0-9]{10,15}$/',
         'items' => 'required|array|min:1',
         'items.*.item_id' => 'nullable|exists:items,id',
         'items.*.item_name' => 'required_without:items.*.item_id|string|max:255',
         'items.*.quantity' => 'required|integer|min:1',
         'items.*.specification_notes' => 'nullable|string',
+    ],
+    [
+        'email.email' => 'Format email tidak valid (harus mengandung @)',
+        'name.min' => 'Nama pelanggan minimal 3 karakter.',
+        'name.max' => 'Nama pelanggan maksimal 50 karakter.',
+        'phone_number.integer' => 'Nomor telepon harus berupa angka.',
     ]);
 
     DB::beginTransaction();
@@ -78,7 +86,7 @@ public function store(Request $request)
          // Generate transaction number based on order date
         $transactionDate = \Carbon\Carbon::parse($validatedData['order_date'])->format('Ymd');
         $latestTransactionId = Transaction::max('id') ?? 0;
-        $transactionNumber = 'TR-' . $transactionDate . '-' . str_pad($latestTransactionId + 1, 4, '0', STR_PAD_LEFT);
+        $transactionNumber = 'TR-' . $transactionDate . '-' . str_pad($latestTransactionId + 1, 3, '0', STR_PAD_LEFT);
 
         // Create Transaction
         $transaction = Transaction::create([
@@ -264,22 +272,36 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     public function storePOReceived(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'po_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048', // Batasi tipe dan ukuran file
+            'po_file' => 'nullable|file|mimes:pdf,jpg,png|max:2048', // Batasi tipe dan ukuran file
         ]);
 
         DB::beginTransaction();
         try {
             // Ambil atau buat instance Invoice (karena po_file ada di tabel invoices)
-            $invoice = $transaction->invoice;
-            if (!$invoice) {
-                // Jika invoice belum ada, buat draft invoice untuk menyimpan file PO
-                $invoice = Invoice::create([
-                    'transaction_id' => $transaction->id,
-                    'invoice_number' => 'INV-' . $transaction->transaction_number, // Nomor draft sementara
-                    'invoice_date' => now()->toDateString(),
-                    'subtotal' => 0, 'tax_percentage' => 0, 'other_costs' => 0, 'total_amount' => 0
-                ]);
-            }
+        $invoice = $transaction->invoice;
+
+        if (!$invoice) {
+        // Buat tanggal invoice sekarang
+        $invoiceDate = now()->toDateString();
+
+        // Extract the padded transaction ID part from transaction number
+        $transactionNumberParts = explode('-', $transaction->transaction_number);
+        $paddedTransactionId = end($transactionNumberParts);
+
+        // Buat invoice number sesuai format
+        $invoiceNumber = $paddedTransactionId . '/FP/KSM/' . date('m', strtotime($invoiceDate)) . '/' . date('Y', strtotime($invoiceDate));
+
+        // Jika invoice belum ada, buat draft invoice untuk menyimpan file PO
+        $invoice = Invoice::create([
+            'transaction_id' => $transaction->id,
+            'invoice_number' => $invoiceNumber,
+            'invoice_date' => $invoiceDate,
+            'subtotal' => 0,
+            'tax_percentage' => 0,
+            'other_costs' => 0,
+            'total_amount' => 0
+        ]);
+    }
 
             if ($request->hasFile('po_file')) {
                 // Hapus file lama jika ada
@@ -337,12 +359,15 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
         public function storeInvoice(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'invoice_number' => 'required|string|unique:invoices,invoice_number,' . ($transaction->invoice ? $transaction->invoice->id : 'NULL') . ',id,transaction_id,' . $transaction->id,
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'tax_percentage' => 'nullable|numeric|min:0|max:100',
-            'other_costs' => 'nullable|numeric|min:0',
-            'subtotal_calculated' => 'required|numeric|min:0', // Hidden field dari frontend untuk keamanan
+        'invoice_number' => ['required','string',Rule::unique('invoices')->ignore(optional($transaction->invoice)->id)->where('transaction_id', $transaction->id),],
+        'invoice_date' => 'required|date|after_or_equal:today',
+        'due_date' => 'nullable|date|after_or_equal:invoice_date',
+        'tax_percentage' => 'nullable|numeric|min:0|max:100',
+        'other_costs' => 'nullable|numeric|min:0',
+        'subtotal_calculated' => 'required|numeric|min:0', // Hidden field dari frontend untuk keamanan
+        ],
+        [
+        'invoice_date.after_or_equal' => 'Tanggal invoice tidak boleh sebelum hari ini.',
         ]);
 
         DB::beginTransaction();
@@ -402,7 +427,7 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
             'payment_status' => 'required|in:Belum Bayar,Lunas', // Sesuaikan dengan status yang valid
             'payment_received_date' => 'nullable|date',
             'payment_method' => 'nullable|string|max:255',
-            'payment_proof_file' => 'nullable|file|mimes:jpeg,png,pdf|max:2048', 
+            'payment_proof_file' => 'nullable|file|mimes:jpeg,png,pdf|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -438,7 +463,7 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
             }
 
             DB::commit();
-            
+
             if ($request->payment_status == 'Lunas') {
                 //
             }
@@ -517,7 +542,7 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
         return view('transactions.edit_payment_status', compact('transaction'));
     }
 
-    
+
 
 
 }
