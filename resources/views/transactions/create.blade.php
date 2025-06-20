@@ -27,7 +27,7 @@
                             </div>
                             <div>
                                 <label for="order_date" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Tanggal Pemesanan:</label>
-                                <input type="date" name="order_date" id="order_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('order_date') border-red-500 @enderror" value="{{ old('order_date', date('Y-m-d')) }}" required>
+                                <input type="date" name="order_date" id="order_date" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('order_date') border-red-500 @enderror" value="{{ old('order_date', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}"  required>
                                 @error('order_date')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
@@ -45,7 +45,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
                                 <label for="orderer_name" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Nama Pemesan:</label>
-                                <input type="text" name="orderer_name" id="orderer_name" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('orderer_name') border-red-500 @enderror" value="{{ old('orderer_name') }}">
+                                <input type="text" name="orderer_name" id="orderer_name" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('orderer_name') border-red-500 @enderror" value="{{ old('orderer_name') }}" minlength="3" maxlength="50" required>
                                 @error('orderer_name')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror
@@ -59,7 +59,7 @@
                             </div>
                             <div>
                                 <label for="orderer_phone" class="block font-medium text-sm text-gray-700 dark:text-gray-300">No Hp Pemesan:</label>
-                                <input type="text" name="orderer_phone" id="orderer_phone" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('orderer_phone') border-red-500 @enderror" value="{{ old('orderer_phone') }}">
+                                <input type="text" name="orderer_phone" id="orderer_phone" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('orderer_phone') border-red-500 @enderror" value="{{ old('orderer_phone') }}" minlength="10" maxlength="15" required>
                                 @error('orderer_phone')
                                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                                 @enderror

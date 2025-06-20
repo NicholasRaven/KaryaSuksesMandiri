@@ -13,7 +13,7 @@
                         @csrf
                         <div class="mb-4">
                             <label for="name" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Nama Supplier:</label>
-                            <input type="text" name="name" id="name" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('name') border-red-500 @enderror" value="{{ old('name') }}" required>
+                            <input type="text" name="name" id="name" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('name') border-red-500 @enderror" value="{{ old('name') }}" minlength="3" maxlength="50" required>
                             @error('name')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
@@ -27,14 +27,14 @@
                         </div>
                         <div class="mb-4">
                             <label for="phone_number" class="block font-medium text-sm text-gray-700 dark:text-gray-300">No Telp:</label>
-                            <input type="text" name="phone_number" id="phone_number" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('phone_number') border-red-500 @enderror" value="{{ old('phone_number') }}">
+                            <input type="text" name="phone_number" id="phone_number" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('phone_number') border-red-500 @enderror" value="{{ old('phone_number') }}" minlength="10" maxlength="15" required>
                             @error('phone_number')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div class="mb-4">
                             <label for="email" class="block font-medium text-sm text-gray-700 dark:text-gray-300">Email:</label>
-                            <input type="email" name="email" id="email" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('email') border-red-500 @enderror" value="{{ old('email') }}">
+                            <input type="email" name="email" id="email" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block mt-1 w-full @error('email') border-red-500 @enderror" value="{{ old('email') }}" >
                             @error('email')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror

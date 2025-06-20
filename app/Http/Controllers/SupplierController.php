@@ -41,11 +41,17 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
+            'name'=>'required|string|min:3|max:50',
             'jenis_barang'=>'nullable|string|max:255',
-            'phone_number'=>'nullable|string|max:20',
-            'email'=>'nullable|string|email|max:255|unique:suppliers',
+            'phone_number'=>'nullable|string|regex:/^[0-9]{10,15}$/',
+            'email'=>'required|string|email|min:3',
             'address'=>'nullable|string',
+        ],
+        [
+            'email.email' => 'Format email tidak valid (harus mengandung @)',
+            'name.min' => 'Nama pelanggan minimal 3 karakter.',
+            'name.max' => 'Nama pelanggan maksimal 50 karakter.',
+            'phone_number.integer' => 'Nomor telepon harus berupa angka.',
         ]);
 
         Supplier::create($request->all());
@@ -75,11 +81,19 @@ class SupplierController extends Controller
     public function update(Request $request, Supplier $supplier)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
+             'name'=>'required|string|min:3|max:50',
             'jenis_barang'=>'nullable|string|max:255',
-            'phone_number'=>'nullable|string|max:20',
-            'email'=>'nullable|string|email|max:255|unique:suppliers,email,'. $supplier->id,
+            'phone_number'=>'nullable|string|regex:/^[0-9]{10,15}$/',
+            'email'=>'nullable|string|email|min:3|max:255|unique:suppliers,email,'. $supplier->id,
             'address'=>'nullable|string',
+        ],
+        [
+            'email.email' => 'Format email tidak valid (harus mengandung @)',
+            'name.min' => 'Nama pelanggan minimal 3 karakter.',
+            'name.max' => 'Nama pelanggan maksimal 50 karakter.',
+            'phone_number.integer' => 'Nomor telepon harus berupa angka.',
+            'phone_number.min' => 'Nomor telepon minimal 10 digit.',
+            'phone_number.max' => 'Nomor telepon maksimal 15 digit.',
         ]);
 
         $supplier->update($request->all());
