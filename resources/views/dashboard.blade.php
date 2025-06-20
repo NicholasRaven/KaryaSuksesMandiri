@@ -12,21 +12,21 @@
 
         @if (Auth::check() && Auth::user()->UserRole == 'SuperAdmin')
         <a href="{{ route('register') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>User (Create)</span>
+          <span>User</span>
         </a>
         @endif
 
         <a href="{{ route('customers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Customer</span>
+          <span>Pelanggan</span>
         </a>
         <a href="{{ route('suppliers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
           <span>Supplier</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Pesanan</span>
+        <a href="{{ route('transactions.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Sistem Transaksi</span>
         </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Penjualan & Pembelian</span>
+        <a href="{{ route('payments.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Pembayaran</span>
         </a>
       </nav>
     </div>

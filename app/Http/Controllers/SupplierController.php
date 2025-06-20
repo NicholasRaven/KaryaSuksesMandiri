@@ -30,9 +30,6 @@ class SupplierController extends Controller
         return view('suppliers.index', compact('suppliers', 'perPage', 'search'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('suppliers.create');
@@ -99,6 +96,4 @@ class SupplierController extends Controller
 
         return redirect()->route('suppliers.index')->with('success', 'Supplier berhasil dihapus!');
     }
-
-    
 }

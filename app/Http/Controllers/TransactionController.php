@@ -19,7 +19,6 @@ class TransactionController extends Controller
     /**
      * 1. Dashboard Sistem Transaksi (Index)
      * Menampilkan daftar transaksi dengan fitur pencarian dan paginasi.
-     * [cite: image_30e534.png, image_6c0191.png]
      */
     public function index(Request $request)
     {
@@ -44,7 +43,6 @@ class TransactionController extends Controller
     /**
      * 2. Tampilan Form Tambah Transaksi Baru
      * Menampilkan formulir untuk membuat transaksi baru, memilih pelanggan, dan menambahkan barang pesanan.
-     * [cite: image_30e515.png, image_6bfd54.png]
      */
     public function create()
     {
@@ -57,7 +55,6 @@ class TransactionController extends Controller
      * 2. Simpan Transaksi Baru
      * Menyimpan data transaksi awal dan detail barang yang dipesan.
      * Setelah berhasil, mengarahkan ke langkah selanjutnya: input harga supplier.
-     * [cite: image_30e515.png, image_6bfd54.png]
      */
 public function store(Request $request)
 {
@@ -127,8 +124,6 @@ public function store(Request $request)
 
     /**
      * 3. Tampilan Form Input Harga Supplier
-     * Menampilkan formulir untuk setiap barang pesanan agar bisa diinput harga dari berbagai supplier.
-     * [cite: image_30e26c.png, image_6bfaaa.png]
      */
 public function inputSupplierPrices(Transaction $transaction)
 {
@@ -147,7 +142,6 @@ public function inputSupplierPrices(Transaction $transaction)
      * 3. Simpan Harga Supplier
      * Menyimpan harga penawaran dari supplier untuk setiap detail transaksi dan menandai yang dipilih.
      * Setelah berhasil, mengarahkan ke langkah selanjutnya: generate PH.
-     * [cite: image_30e26c.png, image_6bfaaa.png]
      */
 public function storeSupplierPrices(Request $request, Transaction $transaction)
 {
@@ -218,7 +212,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 4. Tampilan Penawaran Harga (PH)
      * Menampilkan rincian penawaran harga.
-     * [cite: image_30e24d.png, image_6bfa8a.png]
      */
     public function generatePH(Transaction $transaction)
     {
@@ -237,7 +230,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 4. Aksi Konfirmasi PH Dikirim
      * Mengupdate status proses transaksi menjadi 'PH Dikirim'.
-     * [cite: image_30e24d.png, image_6bfa8a.png]
      */
     public function confirmPHSent(Request $request, Transaction $transaction)
     {
@@ -268,7 +260,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
      * 5. Simpan Konfirmasi PO Diterima
      * Mengunggah file PO dan menyimpan path-nya di tabel `invoices`.
      * Mengupdate status proses transaksi.
-     * [cite: image_30e22d.png, image_6bfa54.png]
      */
     public function storePOReceived(Request $request, Transaction $transaction)
     {
@@ -284,7 +275,7 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
                 // Jika invoice belum ada, buat draft invoice untuk menyimpan file PO
                 $invoice = Invoice::create([
                     'transaction_id' => $transaction->id,
-                    'invoice_number' => 'DRAFT-INV-' . $transaction->transaction_number, // Nomor draft sementara
+                    'invoice_number' => 'INV-' . $transaction->transaction_number, // Nomor draft sementara
                     'invoice_date' => now()->toDateString(),
                     'subtotal' => 0, 'tax_percentage' => 0, 'other_costs' => 0, 'total_amount' => 0
                 ]);
@@ -322,7 +313,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 6. Tampilan Form Invoice
      * Menampilkan form untuk membuat atau mengedit invoice, dengan perhitungan subtotal, pajak, dan total.
-     * [cite: image_30e20e.png, image_6bfa31.png]
      */
     public function createInvoice(Transaction $transaction)
     {
@@ -343,7 +333,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 6. Simpan Invoice
      * Menyimpan data invoice ke database dan memperbarui status transaksi.
-     * [cite: image_30e20e.png, image_6bfa31.png]
      */
         public function storeInvoice(Request $request, Transaction $transaction)
     {
@@ -396,7 +385,6 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
 
     /**
      * Aksi untuk melihat detail transaksi (view button)
-     * [cite: image_30e534.png, image_6c0191.png]
      */
     public function show(Transaction $transaction)
     {
@@ -407,23 +395,65 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
     /**
      * 7. Update Status Pembayaran (dari Dashboard)
      * Mengupdate status pembayaran transaksi (misal: dari "Belum Bayar" menjadi "Lunas").
-     * [cite: image_30e534.png, image_6c0191.png]
      */
     public function updatePaymentStatus(Request $request, Transaction $transaction)
     {
         $request->validate([
             'payment_status' => 'required|in:Belum Bayar,Lunas', // Sesuaikan dengan status yang valid
+            'payment_received_date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:255',
+            'payment_proof_file' => 'nullable|file|mimes:jpeg,png,pdf|max:2048', 
         ]);
 
-        $transaction->update(['payment_status' => $request->payment_status]); // Perubahan status pembayaran [cite: image_30e534.png, image_6c0191.png]
+        DB::beginTransaction();
+        try {
+            // Update payment_status in transactions table
+            $transaction->update([
+                'payment_status' => $request->payment_status,
+            ]);
 
-        return back()->with('success', 'Status pembayaran berhasil diperbarui menjadi ' . $request->payment_status . '.');
+            // Update payment details in invoices table
+            if ($transaction->invoice) {
+                $invoiceData = [
+                    'payment_received_date' => $request->payment_received_date,
+                    'payment_method' => $request->payment_method,
+                ];
+
+                // Handle file upload for payment proof
+                if ($request->hasFile('payment_proof_file')) {
+                    // Delete old file if exists
+                    if ($transaction->invoice->payment_proof_file) {
+                        Storage::delete(str_replace('storage/', 'public/', $transaction->invoice->payment_proof_file));
+                    }
+                    $path = $request->file('payment_proof_file')->store('public/payment_proofs');
+                    $invoiceData['payment_proof_file'] = Storage::url($path);
+                } else if ($request->input('clear_payment_proof')) { // Option to clear existing proof
+                    if ($transaction->invoice->payment_proof_file) {
+                        Storage::delete(str_replace('storage/', 'public/', $transaction->invoice->payment_proof_file));
+                        $invoiceData['payment_proof_file'] = null;
+                    }
+                }
+
+                $transaction->invoice->update($invoiceData);
+            }
+
+            DB::commit();
+            
+            if ($request->payment_status == 'Lunas') {
+                //
+            }
+            return redirect()->route('payments.index')->with('success', 'Status pembayaran invoice berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Gagal memperbarui status pembayaran untuk Transaksi {$transaction->transaction_number}: " . $e->getMessage());
+            return back()->with('error', 'Gagal memperbarui status pembayaran: ' . $e->getMessage());
+        }
     }
 
     /**
      * 8. Menandai Transaksi Selesai (dari Dashboard)
      * Mengupdate status proses transaksi menjadi "Selesai". Memerlukan status pembayaran "Lunas".
-     * [cite: image_30e534.png, image_6c0191.png]
      */
     public function markAsCompleted(Transaction $transaction)
     {
@@ -473,6 +503,21 @@ public function storeSupplierPrices(Request $request, Transaction $transaction)
         // Return PDF sebagai response download
         return $pdf->download('Invoice-' . $transaction->transaction_number . '.pdf');
     }
+
+    public function editPaymentStatus(Transaction $transaction)
+    {
+        // Eager load invoice and customer relationship
+        $transaction->load(['customer', 'invoice']);
+
+        // Check if there is an invoice associated with the transaction
+        if (!$transaction->invoice) {
+            return redirect()->back()->with('error', 'Invoice belum dibuat untuk transaksi ini.');
+        }
+
+        return view('transactions.edit_payment_status', compact('transaction'));
+    }
+
+    
 
 
 }

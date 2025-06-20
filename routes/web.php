@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\UserMiddleware;
@@ -57,6 +58,16 @@ use Illuminate\Support\Facades\Auth;
     });
      Route::get('/{transaction}/download-invoice-pdf', [TransactionController::class, 'downloadInvoicePdf'])->name('transactions.download_invoice_pdf');
 
+    //Rute untuk payment
+    Route::prefix('payments')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])->name('payments.index');
+        Route::get('/{invoice}', [PaymentController::class, 'show'])->name('payments.show');
+        Route::post('/{invoice}/send-reminder', [PaymentController::class, 'sendReminder'])->name('payments.send_reminder');
+    });
+
+    // Route for updating payment status (handled by TransactionController)
+    Route::get('transactions/{transaction}/edit-payment-status', [TransactionController::class, 'editPaymentStatus'])->name('transactions.edit_payment_status');
+    Route::post('transactions/{transaction}/update-payment-status', [TransactionController::class, 'updatePaymentStatus'])->name('transactions.update_payment_status');
 
 Route::middleware(['auth', 'UserMiddleware'])->group(function () {
 

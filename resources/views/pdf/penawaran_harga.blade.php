@@ -159,8 +159,6 @@
     <div class="notes">
         <p><strong>Catatan:</strong></p>
         <p>{{ $transaction->ph_notes ?? 'Tidak ada catatan PH.' }}</p>
-        <p>Harga sewaktu-waktu dapat berubah tanpa pemberitahuan sebelumnya.</p>
-        <p>Mohon konfirmasi kembali harga dan ketersediaan barang sebelum pemesanan.</p>
     </div>
 
     <div class="signature">

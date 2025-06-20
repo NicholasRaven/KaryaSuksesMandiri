@@ -18,6 +18,10 @@ class Invoice extends Model
         'other_costs',
         'total_amount',
         'po_file_path',
+        'payment_received_date',
+        'payment_method',
+        'payment_proof_file',
+        'reminder_sent_at'
     ];
 
     public function transaction()

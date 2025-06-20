@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('item_supplier_prices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('transaction_detail_id')->constrained('transaction_details')->onDelete('cascade');
+            $table->foreignId('item_id')->constrained('items')->onDelete('cascade');
             $table->foreignId('supplier_id')->constrained('suppliers')->onDelete('cascade');
             $table->decimal('price', 15, 2);
             $table->text('notes')->nullable();
-            $table->boolean('is_selected')->default(false);
             $table->timestamps();
+
+            $table->unique(['item_id', 'supplier_id']);
         });
     }
 

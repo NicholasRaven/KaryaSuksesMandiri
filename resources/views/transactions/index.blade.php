@@ -104,7 +104,7 @@
                                                     </a>
                                                 @elseif ($transaction->process_status == 'Invoice Dibuat' && $transaction->payment_status == 'Belum Bayar')
                                                     {{-- Jika Invoice sudah dibuat, dan belum bayar --}}
-                                                    <form action="{{ route('transactions.updateStatus', ['transaction' => $transaction->id, 'type' => 'payment']) }}" method="POST">
+                                                    <form action="{{ route('transactions.edit_payment_status', ['transaction' => $transaction->id, 'type' => 'payment']) }}" method="POST">
                                                         @csrf
                                                         <input type="hidden" name="status" value="Lunas">
                                                         <button type="submit" class="inline-flex items-center px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded">
@@ -113,7 +113,7 @@
                                                     </form>
                                                 @elseif ($transaction->process_status == 'Invoice Dibuat' && $transaction->payment_status == 'Lunas')
                                                     {{-- Jika Invoice sudah dibuat dan Lunas, bisa diselesaikan --}}
-                                                    <form action="{{ route('transactions.updateStatus', ['transaction' => $transaction->id, 'type' => 'process']) }}" method="POST">
+                                                    <form action="{{ route('transactions.edit_payment_status', ['transaction' => $transaction->id, 'type' => 'process']) }}" method="POST">
                                                         @csrf
                                                         <input type="hidden" name="status" value="Selesai">
                                                         <button type="submit" class="inline-flex items-center px-3 py-1 bg-green-700 hover:bg-green-800 text-white text-xs font-semibold rounded">

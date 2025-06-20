@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('items', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->string('unit_type')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
         });

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
-use App\Models\Transaction; // Penting untuk load relasi
+use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log; // Untuk logging reminder (opsional)
-use App\Mail\InvoiceReminder; // Uncomment jika Anda membuat Mailable ini
-use Illuminate\Support\Facades\Mail; // Uncomment jika Anda mengaktifkan fitur email
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Notifications\InvoicePaymentNotification; // Corrected typo (Inovice -> Invoice)
+use App\Mail\InvoiceReminder;
 
 class PaymentController extends Controller
 {
@@ -18,6 +20,13 @@ class PaymentController extends Controller
      */
     public function index(Request $request)
     {
+        // if (Auth::check()) {
+        //     Auth::user()->unreadNotifications()
+        //                 ->where('type', 'App\\Notifications\\InvoicePaymentNotification')
+        //                 ->get()
+        //                 ->markAsRead();
+        // }
+
         // Memuat invoice bersama dengan relasi transaksi dan pelanggan
         $query = Invoice::with(['transaction.customer']);
 
@@ -32,8 +41,7 @@ class PaymentController extends Controller
 
         // Filter status pembayaran
         $status = $request->input('status');
-        if ($status && $status !== 'All') { // Jika status dipilih (bukan 'All')
-            // Filter berdasarkan payment_status di tabel transactions
+        if ($status && $status !== 'All') {
             $query->whereHas('transaction', function ($q) use ($status) {
                 $q->where('payment_status', $status);
             });
@@ -55,6 +63,7 @@ class PaymentController extends Controller
                 $invoice->transaction->update(['payment_status' => 'Jatuh Tempo']);
                 // Perbarui objek di memori juga agar tampilan langsung berubah
                 $invoice->transaction->payment_status = 'Jatuh Tempo';
+                Log::info("Invoice {$invoice->invoice_number} changed to 'Jatuh Tempo' status automatically.");
             }
         }
 
@@ -111,11 +120,11 @@ class PaymentController extends Controller
             if ($customerEmail) {
                 // UNCOMMENT DAN KONFIGURASI BAGIAN INI JIKA ANDA INGIN MENGIRIM EMAIL ASLI
                 // Pastikan Anda sudah mengkonfigurasi Mail di .env dan membuat Mailable class (php artisan make:mail InvoiceReminder)
-                // Mail::to($customerEmail)->send(new InvoiceReminder($invoice, $customerName));
+                Mail::to($customerEmail)->send(new InvoiceReminder($invoice, $customerName));
 
                 // Untuk sementara, kita hanya simulasi dan mencatat ke log/sesi
-                Log::info("Reminder pembayaran dikirim (simulasi) untuk Invoice: {$invoice->invoice_number} ke {$customerEmail}");
-                $message = 'Reminder pembayaran berhasil dikirim (simulasi) ke ' . $customerEmail;
+                Log::info("Reminder pembayaran dikirim untuk Invoice: {$invoice->invoice_number} ke {$customerEmail}");
+                $message = 'Reminder pembayaran berhasil dikirim ke ' . $customerEmail;
             } else {
                 Log::warning("Gagal mengirim reminder untuk Invoice {$invoice->invoice_number}: Email pelanggan tidak ditemukan.");
                 $message = 'Gagal mengirim reminder: Email pelanggan tidak ditemukan.';
