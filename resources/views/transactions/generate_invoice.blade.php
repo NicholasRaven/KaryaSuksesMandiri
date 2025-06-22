@@ -53,8 +53,8 @@
                                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                             <td class="py-4 px-6">{{ $detail->item_name }}</td>
                                             <td class="py-4 px-6">{{ $detail->quantity }} pcs</td>
-                                            <td class="py-4 px-6">Rp {{ number_format($detail->selectedSupplierPrice->price ?? 0, 0, ',', '.') }}</td>
-                                            <td class="py-4 px-6">Rp {{ number_format(($detail->selectedSupplierPrice->price ?? 0) * $detail->quantity, 0, ',', '.') }}</td>
+                                            <td class="py-4 px-6">Rp {{ number_format($detail->final_price_per_unit?? 0, 0, ',', '.') }}</td>
+                                            <td class="py-4 px-6">Rp {{ number_format(($detail->final_price_per_unit ?? 0) * $detail->quantity, 0, ',', '.') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

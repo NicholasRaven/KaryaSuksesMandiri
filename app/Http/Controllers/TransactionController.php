@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage; // Untuk upload file
+use App\Http\Controllers\console;
 
 class TransactionController extends Controller
 {
@@ -145,59 +146,75 @@ public function store(Request $request)
      */
     public function storeSupplierPrices(Request $request, Transaction $transaction)
     {
+
         $request->validate([
             'item_prices' => 'required|array',
             'item_prices.*' => 'required|array',
             'selected_prices' => 'nullable|array',
         ]);
 
+
+
     DB::beginTransaction();
     try {
-        foreach ($request->item_prices as $transactionDetailId => $supplierPrices) {
+        foreach ($request->item_prices as $transactionDetailId => $priceData) {
             $transactionDetail = TransactionDetail::findOrFail($transactionDetailId);
-
+            // dd($transactionDetail);
             // Reset selection for this detail
-            ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)
-                ->update(['is_selected' => false]);
+            // ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)
+            //     ->update(['is_selected' => false]);
 
-            $selectedInputValue = $request->selected_prices[$transactionDetailId] ?? null;
-            $selectedPricePerUnit = null;
+            // $selectedInputValue = $request->selected_prices[$transactionDetailId] ?? null;
+            // $selectedPricePerUnit = null;
+            // dd($selectedInputValue);
 
-            foreach ($supplierPrices as $index => $priceInput) {
-                $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
-                    [
-                        'transaction_detail_id' => $transactionDetailId,
-                        'supplier_id' => $priceInput['supplier_id'],
-                    ],
-                    [
-                        'price' => $priceInput['price'],
-                        'notes' => $priceInput['notes'] ?? null,
-                    ]
-                );
+            // foreach ($supplierPrices as $index => $priceInput) {
+            //     $itemSupplierPrice = ItemSupplierPrice::updateOrCreate(
+            //         [
+            //             'transaction_detail_id' => $transactionDetailId,
+            //             'supplier_id' => $priceInput['supplier_id'],
+            //         ],
+            //         [
+            //             'price' => $priceInput['price'],
+            //             'notes' => $priceInput['notes'] ?? null,
+            //         ]
+            //     );
 
-                // Check if this price is the selected one
-                if ($selectedInputValue !== null && (
-                        $selectedInputValue == ($priceInput['id'] ?? ('new_' . $index)) ||
-                        $selectedInputValue == $itemSupplierPrice->id
-                    )) {
-                    $itemSupplierPrice->update(['is_selected' => true]);
-                    $selectedPricePerUnit = $itemSupplierPrice->price;
-                }
-            }
+            //     // Check if this price is the selected one
+            //     if ($selectedInputValue !== null && (
+            //             $selectedInputValue == ($priceInput['id'] ?? ('new_' . $index)) ||
+            //             $selectedInputValue == $itemSupplierPrice->id
+            //         )) {
+            //         $itemSupplierPrice->update(['is_selected' => true]);
+            //         $selectedPricePerUnit = $itemSupplierPrice->price;
+            //     }
+            // }
+             ItemSupplierPrice::where('transaction_detail_id', $transactionDetailId)->delete();
+            $itemSupplierPrice = ItemSupplierPrice::create([
+                'transaction_detail_id' => $transactionDetailId,
+                'item_id' => $transactionDetail->item_id, // Ambil dari relasi detail
+                'supplier_id' => $priceData['supplier_id'],
+                'price' => $priceData['price'],
+                'notes' => $priceData['notes'] ?? null,
+            ]);
+
+
+            $transactionDetail->update([
+                'final_price_per_unit' => $itemSupplierPrice->price,
+            ]);
+
 
             // Final fallback if selection is still not handled
-            if ($selectedPricePerUnit === null && $selectedInputValue !== null && is_numeric($selectedInputValue)) {
-                $existingSelectedPrice = ItemSupplierPrice::find($selectedInputValue);
-                if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetailId) {
-                    $existingSelectedPrice->update(['is_selected' => true]);
-                    $selectedPricePerUnit = $existingSelectedPrice->price;
-                }
-            }
+            // if ($selectedPricePerUnit === null && $selectedInputValue !== null && is_numeric($selectedInputValue)) {
+            //     $existingSelectedPrice = ItemSupplierPrice::find($selectedInputValue);
+            //     if ($existingSelectedPrice && $existingSelectedPrice->transaction_detail_id == $transactionDetailId) {
+            //         $existingSelectedPrice->update(['is_selected' => true]);
+            //         $selectedPricePerUnit = $existingSelectedPrice->price;
+            //     }
+            // }
 
             // Update the final selected price per unit
-            $transactionDetail->update([
-                'final_price_per_unit' => $selectedPricePerUnit,
-            ]);
+
         }
 
         DB::commit();
@@ -215,7 +232,7 @@ public function store(Request $request)
      */
     public function generatePH(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item','details.selectedSupplierPrice.supplier']); // Remove selectedSupplierPrice
+        $transaction->load(['customer', 'details.item','details.supplierPrices.supplier']); // Remove selectedSupplierPrice
 
         // Hitung subtotal untuk PH
         $phSubtotal = 0;
@@ -316,12 +333,11 @@ public function store(Request $request)
      */
     public function createInvoice(Transaction $transaction)
     {
-        $transaction->load(['details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
-
+        $transaction->load(['details.item', 'details.supplierPrices.supplier', 'invoice']);
         $subtotal = 0;
         foreach ($transaction->details as $detail) {
-            if ($detail->selectedSupplierPrice) {
-                $subtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
+            if ($detail->supplierPrices) {
+                $subtotal += $detail->final_price_per_unit* $detail->quantity;
             }
         }
 
@@ -469,7 +485,7 @@ public function store(Request $request)
 
     public function downloadPHPdf(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier']);
+        $transaction->load(['customer', 'details.item', 'details.supplierPrices.supplier']);
 
         // Hitung subtotal untuk PH
         $phSubtotal = 0;
@@ -487,13 +503,13 @@ public function store(Request $request)
 
     public function downloadInvoicePdf(Transaction $transaction)
     {
-        $transaction->load(['customer', 'details.item', 'details.selectedSupplierPrice.supplier', 'invoice']);
+        $transaction->load(['customer', 'details.item', 'details.supplierPrices.supplier', 'invoice']);
 
         // Hitung subtotal untuk invoice
         $subtotal = 0;
         foreach ($transaction->details as $detail) {
-            if ($detail->selectedSupplierPrice) {
-                $subtotal += $detail->selectedSupplierPrice->price * $detail->quantity;
+            if ($detail->supplierPrices) {
+                $subtotal += $detail->final_price_per_unit * $detail->quantity;
             }
         }
 

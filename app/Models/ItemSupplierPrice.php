@@ -10,10 +10,10 @@ class ItemSupplierPrice extends Model
     use HasFactory;
     protected $fillable = [
         'transaction_detail_id',
+        'item_id',
         'supplier_id',
         'price',
         'notes',
-        'is_selected'
     ];
 
     public function transactionDetail()
