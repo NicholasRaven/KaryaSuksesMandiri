@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('transaction_details', function (Blueprint $table) {
             $table->id();
             $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
-            $table->foreignId('item_id')->nullable()->constrained('items')->onDelete('set null');
+            $table->foreignId('item_id')->nullable()->constrained('items')->onDelete('cascade');
             $table->string('item_name');
             $table->integer('quantity');
             $table->text('spesification')->nullable();

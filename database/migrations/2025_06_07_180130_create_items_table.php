@@ -14,8 +14,12 @@ return new class extends Migration
         Schema::create('items', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->text('description')->nullable();
+            $table->string('unit_type')->nullable();
+            //$table->text('description')->nullable();
+            $table->string('supplier_id')->nullable();
             $table->timestamps();
+
+            $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('set null');
         });
     }
 

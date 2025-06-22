@@ -43,9 +43,9 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
-            'email'=>'required|string|email|max:255|unique:customers',
-            'phone_number'=>'nullable|string|max:20',
+            'name'=>'required|string|min:3|max:60|regex:/^[A-Za-z\s]+$/',
+            'email'=>'required|string|email|min:3|max:100|unique:customers',
+            'phone_number'=>'nullable|digits_between:9,15|regex:/^[0-9]+$/',
             'type'=>'required|string|in:Individu,Perusahaan',
             'address'=>'nullable|string'
         ]);
@@ -77,11 +77,11 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
-            'email'=>'required|string|email|max:255|unique:customers,email,'.$customer->id,
-            'phone_number'=>'nullable|string|max:20',
+            'name'=>'required|string|min:3|max:60|regex:/^[A-Za-z\s]+$/',
+            'email'=>'required|string|email|min:3|max:100|unique:customers',
+            'phone_number'=>'nullable|digits_between:10,15|regex:/^[0-9]+$/',
             'type'=>'required|string|in:Individu,Perusahaan',
-            'address'=>'nullable|string',
+            'address'=>'nullable|string'
         ]);
 
         $customer->update($request->all());

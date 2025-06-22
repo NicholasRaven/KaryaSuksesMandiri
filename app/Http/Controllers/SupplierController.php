@@ -30,9 +30,6 @@ class SupplierController extends Controller
         return view('suppliers.index', compact('suppliers', 'perPage', 'search'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('suppliers.create');
@@ -44,10 +41,10 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
-            'jenis_barang'=>'nullable|string|max:255',
-            'phone_number'=>'nullable|string|max:20',
-            'email'=>'nullable|string|email|max:255|unique:suppliers',
+            'name'=>'required|string|min:3|max:60|regex:/^[A-Za-z\s]+$/',
+            'jenis_barang'=>'nullable|string|min:3|max:60',
+            'phone_number'=>'nullable|digits_between:10,15|regex:/^[0-9]+$/',
+            'email'=>'required|string|email|min:3|max:100|unique:suppliers',
             'address'=>'nullable|string',
         ]);
 
@@ -78,10 +75,10 @@ class SupplierController extends Controller
     public function update(Request $request, Supplier $supplier)
     {
         $request->validate([
-            'name'=>'required|string|max:255',
-            'jenis_barang'=>'nullable|string|max:255',
-            'phone_number'=>'nullable|string|max:20',
-            'email'=>'nullable|string|email|max:255|unique:suppliers,email,'. $supplier->id,
+            'name'=>'required|string|min:3|max:60|regex:/^[A-Za-z\s]+$/',
+            'jenis_barang'=>'nullable|string|min:3|max:60',
+            'phone_number'=>'nullable|digits_between:10,15|regex:/^[0-9]+$/',
+            'email'=>'required|string|email|min:3|max:100|unique:suppliers',
             'address'=>'nullable|string',
         ]);
 
@@ -99,6 +96,4 @@ class SupplierController extends Controller
 
         return redirect()->route('suppliers.index')->with('success', 'Supplier berhasil dihapus!');
     }
-
-    
 }

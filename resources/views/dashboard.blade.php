@@ -1,50 +1,49 @@
 <x-app-layout>
-     <div class="flex h-screen">
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+            {{ __('Dashboard') }}
+        </h2>
+    </x-slot>
+    
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <p>Selamat datang di dashboard Anda.</p>
+                    <p class="mt-4">Di sini Anda bisa melihat ringkasan penting atau statistik aplikasi.</p>
 
-    <!-- Sidebar -->
-    <div :class="open ? 'translate-x-0' : '-translate-x-full'"
-         class="fixed z-30 inset-y-0 left-0 w-64 bg-gray-200 text-black transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0">
-      <div class="p-4 text-2xl font-bold">KSM</div>
-      <nav class="mt-4 space-y-4 pl-4 text-lg">
-        <a href="{{ route('dashboard') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Dashboard</span>
-        </a>
+                    <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="bg-red-100 dark:bg-red-700 p-4 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-red-600 dark:text-red-200 text-3xl">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-red-800 dark:text-red-100">Total Pelanggan</h4>
+                                <p class="text-red-700 dark:text-red-200">120</p>
+                            </div>
+                        </div>
+                        <div class="bg-red-200 dark:bg-red-600 p-4 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-red-600 dark:text-red-100 text-3xl">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-red-800 dark:text-red-100">Total Transaksi</h4>
+                                <p class="text-red-700 dark:text-red-200">55</p>
+                            </div>
+                        </div>
+                        <div class="bg-red-300 dark:bg-red-500 p-4 rounded-lg shadow-md flex items-center space-x-4">
+                            <div class="text-red-800 dark:text-red-100 text-3xl">
+                                <i class="fas fa-money-check-alt"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg text-red-900 dark:text-red-100">Invoice Belum Bayar</h4>
+                                <p class="text-red-800 dark:text-red-200">7</p>
+                            </div>
+                        </div>
+                    </div>
 
-        @if (Auth::check() && Auth::user()->UserRole == 'SuperAdmin')
-        <a href="{{ route('register') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>User (Create)</span>
-        </a>
-        @endif
-
-        <a href="{{ route('customers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Customer</span>
-        </a>
-        <a href="{{ route('suppliers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Supplier</span>
-        </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Pesanan</span>
-        </a>
-        <a href="#" class="flex items-center space-x-2 hover:text-blue-600">
-          <span>Penjualan & Pembelian</span>
-        </a>
-      </nav>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Overlay -->
-    <div x-show="open" @click="open = false"
-         class="fixed inset-0 bg-black opacity-50 z-20 md:hidden"></div>
-
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col w-full ml-0 md:ml-64">
-      <!-- Page Content -->
-      <main class="flex-1 p-4">
-        <!-- Your content here -->
-        <p>Welcome to your dashboard.</p>
-      </main>
-    </div>
-  </div>
-
 </x-app-layout>
-
-

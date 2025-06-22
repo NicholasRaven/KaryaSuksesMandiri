@@ -40,10 +40,10 @@ return new class extends Migration
         });
 
             DB::table('users')->insert([
-            'name' => 'Direktur Utama',
+            'name' => 'Direktur',
             'email' => 'admin@example.com',
             'password' => Hash::make('admin123'), // Always hash the password!
-            'UserRole' => 'SuperAdmin', // Default role
+            'UserRole' => 'Pimpinan', // Default role
             'created_at' => now(),
             'updated_at' => now(),
         ]);

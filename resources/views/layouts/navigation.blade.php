@@ -64,25 +64,7 @@
         </div>
     </div>
 
-    <!-- Navigation Links -->
-    <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-            {{ __('Dashboard') }}
-        </x-nav-link>
-
-        <!-- Add this new link for Customers -->
-        <x-nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')">
-            {{ __('Pelanggan') }}
-        </x-nav-link>
-
-        <x-nav-link :href="route('suppliers.index')" :active="request()->routeIs('suppliers.*')">
-            {{ __('Supplier') }}
-        </x-nav-link>
-
-        <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
-            {{ __('Sistem Transaksi') }}
-        </x-nav-link>
-    </div>
+    
 
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
@@ -98,6 +80,10 @@
 
             <x-responsive-nav-link :href="route('suppliers.index')" :active="request()->routeIs('suppliers.*')">
                 {{ __('Supplier') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('items.index')" :active="request()->routeIs('items.*')">
+                {{ __('Barang') }}
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
