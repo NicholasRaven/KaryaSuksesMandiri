@@ -49,7 +49,7 @@
                         <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-md p-5 flex flex-col justify-between">
                             <div>
                                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Invoice: {{ $invoice->invoice_number }}</h3>
-                                <p class="text-gray-600 dark:text-gray-300 text-sm">Pelanggan: {{ $invoice->transaction->customer->name }}</p>
+                                <p class="text-gray-600 dark:text-gray-300 text-sm">Pelanggan: {{ $invoice->transaction->customer->name ?? 'N/A' }}</p>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm">Tanggal Terbit: {{ \Carbon\Carbon::parse($invoice->issue_date)->translatedFormat('d M Y') }}</p>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm">Jatuh Tempo: {{ \Carbon\Carbon::parse($invoice->due_date)->translatedFormat('d M Y') }}</p>
                                 <p class="text-gray-600 dark:text-gray-300 text-sm font-bold">Total: Rp {{ number_format($invoice->total_amount, 2, ',', '.') }}</p>

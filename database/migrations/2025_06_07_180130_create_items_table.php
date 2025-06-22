@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('unit_type')->nullable();
-            //$table->text('description')->nullable();
-            $table->string('supplier_id')->nullable();
+            $table->text('description')->nullable();
             $table->timestamps();
 
             $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('set null');

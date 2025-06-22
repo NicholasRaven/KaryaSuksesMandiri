@@ -42,8 +42,24 @@
                         </div>
                     </div>
 
-                </div>
-            </div>
-        </div>
+        @if (Auth::check() && Auth::user()->UserRole == 'SuperAdmin')
+        <a href="{{ route('register') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>User</span>
+        </a>
+        @endif
+
+        <a href="{{ route('customers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Pelanggan</span>
+        </a>
+        <a href="{{ route('suppliers.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Supplier</span>
+        </a>
+        <a href="{{ route('transactions.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Sistem Transaksi</span>
+        </a>
+        <a href="{{ route('payments.index') }}" class="flex items-center space-x-2 hover:text-blue-600">
+          <span>Pembayaran</span>
+        </a>
+      </nav>
     </div>
 </x-app-layout>
